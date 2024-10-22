@@ -1,0 +1,73 @@
+version: '3.3'
+
+services:
+  app:
+    container_name: idealize_app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    networks:
+      - server-network
+    depends_on:
+      - db_mysql
+    volumes:
+      - ./uploads:/app/uploads
+    environment:
+      DB_HOST: db_mysql
+      DB_USER: root
+      DB_PASSWORD: ""
+      DB_NAME: test
+      DB_PORT: 3306
+
+  db:
+    image: mongo
+    container_name: db_mongo
+    volumes:
+      - mongodata:/data/db
+    networks:
+      - server-network
+
+  db_mysql:
+    image: mysql:8.0
+    container_name: db_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: test
+      MYSQL_USER: root
+      MYSQL_PASSWORD: ""
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - server-network
+
+  flutter-web-app:
+    container_name: flutter-web-app
+    build:
+      context: ../Idealize-Admin-Panel-Build
+      dockerfile: Dockerfile.flutter
+    networks:
+      - server-network
+
+  nginx:
+    image: nginx:alpine
+    container_name: nginx
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - app
+      - flutter-web-app
+    networks:
+      - server-network
+
+volumes:
+  mongodata:
+  mysql_data:
+
+networks:
+  server-network:
