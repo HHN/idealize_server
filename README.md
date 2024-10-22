@@ -77,6 +77,7 @@ SWAGGER_PASSWORD=Your-desire-swagger-password
 MAILGUN_API_KEY=Your-desire-mailgun-api-key
 MAILGUN_DOMAIN=Your-desire-mailgun-domain
 MAILGUN_FROM=CampusConnect Your-desire-mailgun-from-header
+CHAT_BOT_ENDPOINT_URL=http://127.0.0.1:8000/api/chatbot
 ```
 
 STEP 2
