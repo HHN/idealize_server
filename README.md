@@ -8,7 +8,7 @@
   <p align="center">
   Heilbronn University is researching advanced technical tools and didactic approaches designed to foster collaboration and interaction. The primary goal is to enhance and facilitate interdisciplinary, inter-faculty, and inter-university cooperation. Through the InduKo research project, we aim to strengthen this collaboration using innovative digital tools and modern, digitally supported strategies that boost motivation and foster innovation through partnership.
 A key aspect of this effort is involving students directly in the development process. The <a href="https://www.hs-heilbronn.de/en/idealize-12f73ca0754864df" target="_blank">IdeaLize</a> platform, a sub-project within InduKo, is designed to showcase HHN's ideas and projects, helping to identify collaboration opportunities, share expertise, and encourage new perspectives. Students, professors, lecturers, and staff are invited to post projects, engage in discussions, and collaborate or offer support, fostering a community of shared knowledge.
-This platform facilitates sustainable project management and transparent knowledge transfer, providing a comprehensive portfolio of HHN initiatives. It inspires joint projects, potential start-ups, and a broad spectrum of exchanges across locations and faculties, empowering both students and faculty to connect and innovate together.  <a href="https://www.hs-heilbronn.de/de/induko" target="_blank">InduKo</a> Project was funded by <a href="[https://www.hs-heilbronn.de/de/induko](https://stiftung-hochschullehre.de/en/)" target="_blank">Stiftung Innovation in der Hochschullehre</a>  (August 2021 - July 2024). 
+This platform facilitates sustainable project management and transparent knowledge transfer, providing a comprehensive portfolio of HHN initiatives. It inspires joint projects, potential start-ups, and a broad spectrum of exchanges across locations and faculties, empowering both students and faculty to connect and innovate together.  <a href="https://www.hs-heilbronn.de/en/projekt-induko-2cab68e84c21b797" target="_blank">InduKo</a> Project was funded by  <a href="https://stiftung-hochschullehre.de/en/" target="_blank">Stiftung Innovation in der Hochschullehre</a>(August 2021 - July 2024). 
 
   </p>
 
@@ -106,8 +106,7 @@ Nest is an MIT-licensed open source project. It can grow thanks to the sponsors 
 - Back-end Developer - [Sina Moradbakhti](https://github.com/sina-moradbakhti)
 
 ## License
-
-- Project License is [Apache 2.0](LICENSE)
+- This project is licensed under [Apache 2.0](LICENSE). Copyright 2024 Prof. Dr. Mahsa Fischer, Hochschule Heilbronn.
 - Nest is [MIT licensed](https://en.wikipedia.org/wiki/MIT_License).
 
 ## Links
