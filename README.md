@@ -107,12 +107,12 @@ Nest is an MIT-licensed open source project. It can grow thanks to the sponsors 
 
 ## License
 
-Project License is [Apache 2.0](LICENSE)
-Nest is [MIT licensed](https://en.wikipedia.org/wiki/MIT_License).
+- Project License is [Apache 2.0](LICENSE)
+- Nest is [MIT licensed](https://en.wikipedia.org/wiki/MIT_License).
 
 ## Links
-[Induko (English): ](https://www.hs-heilbronn.de/en/projekt-induko-2cab68e84c21b797)
-[ideALize English: ](https://www.hs-heilbronn.de/en/idealize-12f73ca0754864df)
+- [Induko (English): ](https://www.hs-heilbronn.de/en/projekt-induko-2cab68e84c21b797)
+- [ideALize English: ](https://www.hs-heilbronn.de/en/idealize-12f73ca0754864df)
 
 ## Setting up and running on Server
 
