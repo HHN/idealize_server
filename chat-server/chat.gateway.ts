@@ -23,7 +23,7 @@ export class ChatGateway
 
     constructor(private chatService: ChatService) { }
 
-    //@UseGuards(JwtAuthGuard) // Use the guard to protect the WebSocket connection
+    // @UseGuards(JwtAuthGuard) // Use the guard to protect the WebSocket connection
     @SubscribeMessage('sendMessage')
     async handleMessage(
         @ConnectedSocket() client: Socket,
@@ -39,7 +39,7 @@ export class ChatGateway
             // Emit the bot's response back to the user
             client.emit('receiveMessage', { message: botResponse });
         } catch (error) {
-            this.logger.error('Failed to communicate with the chatbot', error);
+            this.logger.error(error);
             client.emit('error', 'Failed to communicate with chatbot');
         }
     }
