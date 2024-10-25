@@ -1,0 +1,8 @@
+NOTICE
+
+This project includes software from the following libraries, licensed under the Apache License, Version 2.0:
+
+- [RxJS](https://rxjs.dev/)
+- [Swagger UI Express](https://github.com/scottie1984/swagger-ui-express)
+
+Each of these libraries is licensed under the Apache License, Version 2.0, and their use in this project is governed by the terms of that license.

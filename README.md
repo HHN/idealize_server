@@ -109,6 +109,12 @@ Nest is an MIT-licensed open source project. It can grow thanks to the sponsors 
 - This project is licensed under [Apache 2.0](LICENSE). Copyright 2024 Prof. Dr. Mahsa Fischer, Hochschule Heilbronn.
 - Nest is [MIT licensed](https://en.wikipedia.org/wiki/MIT_License).
 
+### Licenses for Third-Party Libraries
+- [Mongoose](https://mongoosejs.com/) (MIT)
+- [RxJS](https://rxjs.dev/) (Apache-2.0)
+- [Swagger UI Express](https://github.com/scottie1984/swagger-ui-express) (Apache-2.0)
+- [UUID](https://github.com/uuidjs/uuid) (MIT)
+
 ## Links
 - [Induko Project Website](https://www.hs-heilbronn.de/en/projekt-induko-2cab68e84c21b797)
 - [IdeaLize Project Website](https://www.hs-heilbronn.de/en/idealize-12f73ca0754864df)
