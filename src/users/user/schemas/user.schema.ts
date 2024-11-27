@@ -20,12 +20,6 @@ export class User {
     @Prop({ required: true, select: false })
     password: string;
 
-    @Prop({ require: false, select: false })
-    token: string;
-
-    @Prop({ require: false, select: false })
-    refreshToken: string;
-
     @Prop({ default: false })
     status: boolean;
 

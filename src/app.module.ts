@@ -32,7 +32,6 @@ import { AuthService } from './auth/auth.service';
       ({
         uri: configuration().mongodb.url,
         useNewUrlParser: true,
-        dbName: 'idealize'
       })
     }),
     UsersModule,
