@@ -15,12 +15,6 @@ export class Admin {
     password: string;
 
     @Prop({ require: false, select: false })
-    token: string;
-
-    @Prop({ require: false, select: false })
-    refreshToken: string;
-
-    @Prop({ require: false, select: false })
     codeExpire: Date;
     
     @Prop({ default: false })

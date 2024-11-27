@@ -29,6 +29,8 @@ export class MailerService {
       }
 
     async sendVerificationEmail(to: string, name: string, code: string) {
+        console.log(`-----> Mailgun debug [${name}]`, code);
+
         const domain = configuration().mailgun.domain;
         const from = configuration().mailgun.from;
 

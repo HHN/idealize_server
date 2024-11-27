@@ -56,16 +56,20 @@ export class AdminService {
 
         const updatedUser = await this.adminModel
             .findByIdAndUpdate(createdUser._id,
-                { token, refreshToken, status: true },
+                { status: true },
                 { new: true }
             )
-            .select('-password +refreshToken +token');
+            .select('-password');
 
 
-        return updatedUser;
+        return {
+            token,
+            refreshToken,
+            ...updatedUser.toJSON()
+        };
     }
 
-    async login(user: LoginAdminDto): Promise<Admin> {
+    async login(user: LoginAdminDto): Promise<any> {
         const existingUser = await this.adminModel.findOne(
             {
                 email: user.email.toLowerCase(),
@@ -101,38 +105,51 @@ export class AdminService {
         const refreshToken = await this.authService.generateToken(existingUser._id.toString(), true, true);
         const updatedUser = await this.adminModel
             .findByIdAndUpdate(existingUser._id, { token, refreshToken }, { new: true })
-            .select('-password +refreshToken +token');
+            .select('-password');
 
-        updatedUser.token = token;
-        return updatedUser;
+        return {
+            token,
+            refreshToken,
+            ...updatedUser.toJSON()
+        };
     }
 
     async refreshToken(expiredToken: string, refreshToken: string): Promise<any> {
         // first check if the user already exists
         const jwtUser = await this.authService.decodeJWT(expiredToken);
+        const refreshTokenValidation = await this.authService.decodeJWT(refreshToken);
 
         const existingUser = await this.adminModel
-            .findOne({ _id: jwtUser.userId, refreshToken })
+            .findOne({ _id: jwtUser.userId })
             .select('_id')
             .exec();
 
         if (existingUser) {
+
+            if(refreshTokenValidation.userId !== existingUser._id.toString()) {
+                throw new HttpException(
+                    {
+                        status: HttpStatus.UNAUTHORIZED,
+                        error: 'Invalid token',
+                        message: 'Invalid token',
+                    },
+                    HttpStatus.UNAUTHORIZED,
+                );
+            }
+
             // update user's token
             const newToken = await this.authService.generateToken(existingUser._id.toString(), false, true,);
             const newRefreshToken = await this.authService.generateToken(existingUser._id.toString(), true, true,);
 
-            await this.adminModel
-                .findByIdAndUpdate(
-                    existingUser._id,
-                    { token: newToken, refreshToken: newRefreshToken },
-                    { new: true, }
-                )
+            const userData = await this.adminModel
+                .findOne({ _id: existingUser._id })
                 .exec();
 
-            return await this.adminModel
-                .findOne({ _id: existingUser._id })
-                .select('+token +refreshToken')
-                .exec();
+            return {
+                token: newToken,
+                refreshToken: newRefreshToken,
+                ...userData.toJSON()
+            };
 
         } else {
             throw new HttpException(

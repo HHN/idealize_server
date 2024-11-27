@@ -48,7 +48,8 @@ export class UsersService {
         existingUser.firstName = createUserDto.firstName;
         existingUser.lastName = createUserDto.lastName;
         existingUser.password = this.authService.hashPassword(createUserDto.password);
-        existingUser.code = code;
+        // Store the verification code in hashed version
+        existingUser.code = this.authService.hashPassword(code);
         existingUser.codeExpire = codeExpire;
 
         await existingUser.save();
@@ -80,7 +81,7 @@ export class UsersService {
 
     const updatedCreatedUserDTO = {
       ...createUserDto,
-      code: code,
+      code: this.authService.hashPassword(code),
       codeExpire: codeExpire,
       password: this.authService.hashPassword(createUserDto.password),
     };
@@ -120,7 +121,7 @@ export class UsersService {
       // Expire code after 2 minutes
       const codeExpire = new Date(Date.now() + 2 * 60 * 1000);
 
-      existingUser.code = code;
+      existingUser.code = this.authService.hashPassword(code);
       existingUser.codeExpire = codeExpire;
       await existingUser.save();
 
@@ -153,7 +154,7 @@ export class UsersService {
     }
   }
 
-  async verify(verifyUserDto: VerifyUserDto): Promise<User> {
+  async verify(verifyUserDto: VerifyUserDto): Promise<any> {
     const existingUser = await this.userModel
       .findOne({
         email: verifyUserDto.email.toLowerCase(),
@@ -175,7 +176,7 @@ export class UsersService {
         );
       }
 
-      if (existingUser.code != verifyUserDto.code) {
+      if (!await this.authService.comparePasswords(verifyUserDto.code, existingUser.code)) {
         throw new HttpException(
           {
             status: HttpStatus.BAD_REQUEST,
@@ -191,8 +192,6 @@ export class UsersService {
       const refreshToken = await this.authService.generateToken(existingUser._id.toString(), true);
 
       existingUser.status = true;
-      existingUser.token = token;
-      existingUser.refreshToken = refreshToken;
       existingUser.code = null;
       existingUser.codeExpire = null;
 
@@ -215,10 +214,13 @@ export class UsersService {
           path: 'studyPrograms',
           populate: { path: 'user', select: '_id firstName lastName email userType' }
         })
-        .select('+token +refreshToken')
         .exec();
 
-      return updatedUser;
+      return {
+        token: token,
+        refreshToken: refreshToken,
+        ...updatedUser.toJSON(),
+      };
 
     } else {
       throw new HttpException(
@@ -235,13 +237,25 @@ export class UsersService {
   async refreshToken(expiredToken: string, refreshToken: string): Promise<any> {
     // first check if the user already exists
     const jwtUser = await this.authService.decodeJWT(expiredToken);
+    const refreshTokenValidation = await this.authService.decodeJWT(refreshToken);
 
     const existingUser = await this.userModel
-      .findOne({ _id: jwtUser.userId, refreshToken })
+      .findOne({ _id: jwtUser.userId })
       .select('_id')
       .exec();
 
     if (existingUser) {
+
+      if (refreshTokenValidation.userId !== existingUser._id.toString()) {
+        throw new HttpException(
+          {
+            status: HttpStatus.FORBIDDEN,
+            error: 'Invalid refresh token',
+            message: 'Invalid refresh token',
+          },
+          HttpStatus.FORBIDDEN,
+        );
+      }
 
       if (existingUser.isBlockedByAdmin) {
         throw new HttpException(
@@ -280,15 +294,7 @@ export class UsersService {
       const newToken = await this.authService.generateToken(existingUser._id.toString());
       const newRefreshToken = await this.authService.generateToken(existingUser._id.toString(), true);
 
-      await this.userModel
-        .findByIdAndUpdate(
-          existingUser._id,
-          { token: newToken, refreshToken: newRefreshToken },
-          { new: true, }
-        )
-        .exec();
-
-      return await this.userModel
+      const userData = await this.userModel
         .findOne({ _id: existingUser._id })
         .populate({
           path: 'profilePicture',
@@ -306,8 +312,14 @@ export class UsersService {
           path: 'studyPrograms',
           populate: { path: 'user', select: '_id firstName lastName email userType' }
         })
-        .select('+token +refreshToken +profilePicture')
+        .select('+profilePicture')
         .exec();
+
+      return {
+        token: newToken,
+        refreshToken: newRefreshToken,
+        ...userData.toJSON(),
+      };
 
     } else {
       throw new HttpException(
@@ -321,7 +333,7 @@ export class UsersService {
     }
   }
 
-  async login(loginUserDto: LoginUserDto): Promise<UserDocument> {
+  async login(loginUserDto: LoginUserDto): Promise<any> {
     // first check if the user already exists
     const existingUser = await this.userModel
       .findOne({ email: loginUserDto.email.toLowerCase(), })
@@ -359,7 +371,7 @@ export class UsersService {
         // Expire code after 2 minutes
         const codeExpire = new Date(Date.now() + 2 * 60 * 1000);
 
-        existingUser.code = code;
+        existingUser.code = this.authService.hashPassword(code);
         existingUser.codeExpire = codeExpire;
         await existingUser.save();
 
@@ -411,8 +423,8 @@ export class UsersService {
       const refreshToken = await this.authService.generateToken(existingUser._id.toString(), true);
 
       const updatedUser = await this.userModel
-        .findByIdAndUpdate(existingUser._id, { token, refreshToken }, { new: true })
-        .select('+token +profilePicture')
+        .findById(existingUser._id)
+        .select('+profilePicture')
         .populate('interestedTags')
         .populate({
           path: 'profilePicture',
@@ -430,10 +442,13 @@ export class UsersService {
           path: 'studyPrograms',
           populate: { path: 'user', select: '_id firstName lastName email userType' }
         })
-        .select('+token +refreshToken')
         .exec();
 
-      return updatedUser;
+      return {
+        token,
+        refreshToken,
+        ...updatedUser.toJSON(),
+      };
 
     } else {
       throw new HttpException(
@@ -465,7 +480,7 @@ export class UsersService {
         path: 'studyPrograms',
         populate: { path: 'user', select: '_id firstName lastName email userType' }
       })
-      .select(asAdmin ? '+isBlockedByAdmin +softDeleted +code +codeExpire' : '-token -refreshToken')
+      .select(asAdmin ? '+isBlockedByAdmin +softDeleted +code +codeExpire' : '-code -codeExpire')
       .exec();
   }
 
@@ -565,7 +580,7 @@ export class UsersService {
         path: 'studyPrograms',
         populate: { path: 'user', select: '_id firstName lastName email userType' }
       })
-      .select('+token +refreshToken +profilePicture')
+      .select('+profilePicture')
       .exec();
   }
 
@@ -582,12 +597,8 @@ export class UsersService {
     const user = await this.userModel.findByIdAndUpdate(id, { isBlockedByAdmin: true }, { new: true }).exec();
 
     // invalidate tokens
-    const token = await this.authService.generateToken(user._id.toString());
-    const refreshToken = await this.authService.generateToken(user._id.toString(), true);
-
-    user.token = token;
-    user.refreshToken = refreshToken;
-    await user.save();
+    await this.authService.generateToken(user._id.toString());
+    await this.authService.generateToken(user._id.toString(), true);
 
     return user;
   }
@@ -604,12 +615,8 @@ export class UsersService {
     const user = await this.userModel.findByIdAndUpdate(id, { status: false }, { new: true }).exec();
 
     // invalidate tokens
-    const token = await this.authService.generateToken(user._id.toString());
-    const refreshToken = await this.authService.generateToken(user._id.toString(), true);
-
-    user.token = token;
-    user.refreshToken = refreshToken;
-    await user.save();
+    await this.authService.generateToken(user._id.toString());
+    await this.authService.generateToken(user._id.toString(), true);
 
     return user;
   }
@@ -638,7 +645,7 @@ export class UsersService {
     // Expire code after 2 minutes
     const codeExpire = new Date(Date.now() + 2 * 60 * 1000);
 
-    existingUser.code = code;
+    existingUser.code = this.authService.hashPassword(code);
     existingUser.codeExpire = codeExpire;
     await existingUser.save();
 
@@ -693,7 +700,7 @@ export class UsersService {
       );
     }
 
-    if (existingUser.code != deleteUserDto.code) {
+    if (!await this.authService.comparePasswords(deleteUserDto.code, existingUser.code)) {
       throw new HttpException(
         {
           status: HttpStatus.BAD_REQUEST,
@@ -731,7 +738,7 @@ export class UsersService {
     // Expire code after 2 minutes
     const codeExpire = new Date(Date.now() + 2 * 60 * 1000);
 
-    existingUser.code = code;
+    existingUser.code = this.authService.hashPassword(code);
     existingUser.codeExpire = codeExpire;
     await existingUser.save();
 
@@ -784,8 +791,7 @@ export class UsersService {
       );
     }
 
-    console.log(existingUser.code, resetPasswordDto.code);
-    if (existingUser.code != resetPasswordDto.code) {
+    if (!await this.authService.comparePasswords(resetPasswordDto.code, existingUser.code)) {
       throw new HttpException(
         {
           status: HttpStatus.BAD_REQUEST,
