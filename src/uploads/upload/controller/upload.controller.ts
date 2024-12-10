@@ -21,10 +21,10 @@ export class UploadsController {
     @ApiConsumes('multipart/form-data')
     @UseInterceptors(FileInterceptor('file', {
         storage: diskStorage({
-            destination: './uploads/profile-pictures',  // Define the storage path
+            destination: './uploads',
             filename: (req, file, cb) => {
                 const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-                cb(null, `${uniqueSuffix}${extname(file.originalname)}`);  // Unique filename
+                cb(null, `${uniqueSuffix}${extname(file.originalname)}`);
             },
         }),
         fileFilter: (req, file, cb) => {
