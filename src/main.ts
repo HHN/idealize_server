@@ -59,6 +59,7 @@ async function bootstrap() {
   /* Enable CORS */
   app.enableCors({
     origin: [
+      'http://localhost:4200',
       'http://localhost:8080',
       'http://flutter-web-app',
       'https://flutter-web-app',
