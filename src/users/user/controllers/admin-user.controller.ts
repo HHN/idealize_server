@@ -1,9 +1,10 @@
-import { Controller, Post, Body, UsePipes, ValidationPipe, Headers, Put, UseGuards, Get, Param, Delete, Patch } from '@nestjs/common';
+import { Controller, Post, Body, UsePipes, ValidationPipe, Headers, Put, UseGuards, Get, Param, Delete, Patch, Query } from '@nestjs/common';
 import { UsersService } from '../services/user.service';
 import { User } from '../schemas/user.schema';
 import { ApiBearerAuth, ApiHeader, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAdminAuthGuard } from 'src/auth/jwt.guard';
 import { UpdateUserByAdminDto } from '../dtos/update-user-by-admin.dto';
+import { CreateUserDto } from '../dtos/create-user.dto';
 
 @ApiTags('👑 Users (admin access)')
 @Controller('admin/users')
@@ -11,6 +12,17 @@ import { UpdateUserByAdminDto } from '../dtos/update-user-by-admin.dto';
 @ApiBearerAuth('JWT-auth')
 export class AdminUsersController {
     constructor(private readonly usersService: UsersService) { }
+
+    @Post('/new')
+    @ApiOperation({
+        summary: 'This endpoint creates a new user',
+        description: 'This endpoint creates a new user',
+    })
+    @ApiHeader({ name: 'Authorization', required: false })
+    @UsePipes(new ValidationPipe({ transform: true }))
+    async create(@Body() user: CreateUserDto): Promise<User> {
+        return this.usersService.createByAdmin(user);
+    }
 
     @Get()
     @ApiOperation({
@@ -20,8 +32,8 @@ export class AdminUsersController {
     @ApiHeader({ name: 'Authorization', required: false })
 
     @UsePipes(new ValidationPipe({ transform: true }))
-    async findAll(): Promise<User[]> {
-        return this.usersService.findAll(true);
+    async findAll(@Query() query): Promise<User[]> {
+        return this.usersService.findAll(true, query);
     }
 
     @Get(':id')
