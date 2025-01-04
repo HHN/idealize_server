@@ -462,7 +462,11 @@ export class UsersService {
     }
   }
 
-  async findAll(asAdmin: boolean = false): Promise<User[]> {
+  async findAll(asAdmin: boolean = false, requestQuery = null): Promise<User[]> {
+
+    const sortField = requestQuery.sortField ? requestQuery.sortField : 'createdAt';
+    const sortOrder = requestQuery.sort === 'desc' ? -1 : 1;
+
     return this.userModel.find(asAdmin ? {} : { status: true, softDeleted: false, isBlockedByAdmin: false, })
       .populate({
         path: 'profilePicture',
@@ -481,6 +485,7 @@ export class UsersService {
         populate: { path: 'user', select: '_id firstName lastName email userType' }
       })
       .select(asAdmin ? '+isBlockedByAdmin +softDeleted +code +codeExpire' : '-code -codeExpire')
+      .sort({ [sortField]: sortOrder })
       .exec();
   }
 
@@ -811,6 +816,52 @@ export class UsersService {
 
   async editByAdmin(userId: string, updateUserByAdminDto: UpdateUserByAdminDto): Promise<User> {
     return await this.userModel.findByIdAndUpdate(userId, updateUserByAdminDto).exec();
+  }
+
+  async createByAdmin(createUserDto: CreateUserDto): Promise<any> {
+    // first check if the user already exists
+    const existingUser = await this.userModel.findOne({ email: createUserDto.email.toLowerCase() }).exec();
+
+    if (existingUser) {
+
+      throw new HttpException(
+        {
+          status: HttpStatus.BAD_REQUEST,
+          error: 'Duplicate email',
+          message: 'The email provided is already created',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+
+    }
+
+    const updatedCreatedUserDTO = {
+      ...createUserDto,
+      password: this.authService.hashPassword(createUserDto.password),
+      isBlockedByAdmin: false,
+      softDeleted: false,
+      status: false,
+    };
+
+    const targetUser = new this.userModel(updatedCreatedUserDTO);
+    await targetUser.save();
+
+    return {
+      message: 'User created successfully',
+      data: {
+        user: {
+          _id: targetUser._id,
+          email: targetUser.email,
+          firstName: targetUser.firstName,
+          lastName: targetUser.lastName,
+          username: targetUser.username,
+          status: targetUser.status,
+          isBlockedByAdmin: targetUser.isBlockedByAdmin,
+          softDeleted: targetUser.softDeleted,
+          userType: targetUser.userType
+        }
+      },
+    };
   }
 }
 

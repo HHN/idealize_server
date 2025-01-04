@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Param, Body, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Param, Body, UseGuards, UsePipes, ValidationPipe, Query } from '@nestjs/common';
 import { TagService } from '../services/tag.service';
 import { CreateTagDto, EditTagDto } from '../dtos/tag.dto';
 import { Tag } from '../schemas/tag.schema';
@@ -23,14 +23,25 @@ export class AdminTagController {
         return this.tagService.create(createTagDto);
     }
 
+    @Post('new/bulk')
+    @ApiOperation({
+        summary: 'This endpoint creates multiple tags',
+        description: 'This endpoint creates multiple tags',
+    })
+    @ApiBody({ type: [CreateTagDto] })
+    @UsePipes(new ValidationPipe({ transform: true }))
+    async createBulk(@Body() createTagDto: CreateTagDto[]): Promise<Tag[]> {
+        return this.tagService.createBulk(createTagDto);
+    }
+
     @Get()
     @ApiOperation({
         summary: 'This endpoint returns all of the tags',
         description: 'This endpoint returns all of the tags',
     })
     @UsePipes(new ValidationPipe({ transform: true }))
-    async findAll(): Promise<Tag[]> {
-        return this.tagService.findAll();
+    async findAll(@Query() query): Promise<Tag[]> {
+        return this.tagService.findAll(query);
     }
 
     @Get(':id')

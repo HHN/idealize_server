@@ -13,8 +13,17 @@ export class TagService {
         return createdTag.save();
     }
 
-    async findAll(): Promise<Tag[]> {
-        return this.tagModel.find().exec();
+    async createBulk(createTagDto: CreateTagDto[]): Promise<Tag[]> {
+        return this.tagModel.insertMany(createTagDto);
+    }
+
+    async findAll(requestQuery = null): Promise<Tag[]> {
+        const sortField = requestQuery.sortField ? requestQuery.sortField : 'createdAt';
+        const sortOrder = requestQuery.sort === 'desc' ? -1 : 1;
+
+        return this.tagModel.find()
+            .sort({ [sortField]: sortOrder })
+            .exec();
     }
 
     async findById(id: string): Promise<Tag> {

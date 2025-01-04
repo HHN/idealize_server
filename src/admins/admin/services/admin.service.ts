@@ -118,7 +118,7 @@ export class AdminService {
         // first check if the user already exists
         const jwtUser = await this.authService.decodeJWT(expiredToken);
         const refreshTokenValidation = await this.authService.decodeJWT(refreshToken);
-
+        
         const existingUser = await this.adminModel
             .findOne({ _id: jwtUser.userId })
             .select('_id')
