@@ -49,6 +49,9 @@ export class User {
 
     @Prop({ default: false, select: false })
     softDeleted: boolean;
+
+    @Prop({ type: Boolean, default: false, select: false })
+    isMockData: boolean;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

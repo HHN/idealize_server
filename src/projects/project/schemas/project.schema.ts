@@ -35,6 +35,9 @@ export class Project {
 
     @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'Upload', required: false })
     thumbnail: Types.ObjectId;
+
+    @Prop({ type: Boolean, default: false, select: false })
+    isMockData: boolean;
 }
 
 export const ProjectSchema = SchemaFactory.createForClass(Project);

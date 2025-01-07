@@ -19,6 +19,7 @@ import { JwtAuthGuard } from './auth/jwt.guard';
 import { ChatService } from 'chat-server/chat.service';
 import { ChatGateway } from 'chat-server/chat.gateway';
 import { AuthService } from './auth/auth.service';
+import { SeedingModule } from './seeding/seeding.module';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { AuthService } from './auth/auth.service';
     ReportModule,
     MailerModule,
     AdminModule,
+    SeedingModule,
     //ArchiveModule,
   ],
   controllers: [AppController],
