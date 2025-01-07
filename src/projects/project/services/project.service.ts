@@ -226,19 +226,17 @@ export class ProjectsService {
       //     path: 'studyPrograms',
       //   },
       // })
-      // .populate({
-      //   path: 'owner',
-      //   populate: {
-      //     path: 'interestedCourses',
-
-      //   },
-      // })
-      // .populate({
-      //   path: 'teamMembers',
-      //   select: '_id, firstName lastName email userType',
-      // })
+      .populate({
+        path: 'owner',
+        select: '_id, firstName lastName email userType',
+      })
+      .populate({
+        path: 'teamMembers',
+        select: '_id, firstName lastName email userType',
+      })
+      .populate('courses')
       .populate('tags');
-    // .populate('courses')
+      
     // .populate('thumbnail')
     // .populate({
     //   path: 'attachments',

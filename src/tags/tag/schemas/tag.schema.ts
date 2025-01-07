@@ -13,6 +13,10 @@ export class Tag {
 
     @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'User', required: false })
     user: Types.ObjectId;
+    
+    @Prop({ type: Boolean, default: false, select: false })
+    isMockData: boolean;
+    
 }
 
 export const TagSchema = SchemaFactory.createForClass(Tag);
