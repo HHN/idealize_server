@@ -16,6 +16,9 @@ export class Comment {
 
     @Prop({ require: true })
     content: string;
+
+    @Prop({ type: Boolean, default: false, select: false })
+    isMockData: boolean;
 }
 
 export const CommentSchema = SchemaFactory.createForClass(Comment);

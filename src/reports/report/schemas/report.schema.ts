@@ -25,6 +25,9 @@ export class Report {
 
     @Prop({ require: false, default: false })
     action: boolean;
+
+    @Prop({ type: Boolean, default: false, select: false })
+    isMockData: boolean;
 }
 
 export const ReportSchema = SchemaFactory.createForClass(Report);

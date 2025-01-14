@@ -44,6 +44,28 @@ export class AdminSeedingController {
         return this.seedingService.projectsMockup();
     }
 
+    @Post('comments')
+    @ApiOperation({
+        summary: 'This endpoint creates comments for seeding',
+        description: 'This endpoint creates comments for seeding',
+    })
+    @ApiHeader({ name: 'Authorization', required: true })
+    @UsePipes(new ValidationPipe({ transform: true }))
+    async commentsMockup(): Promise<any> {
+        return this.seedingService.commentsMockup();
+    }
+
+    @Post('reports')
+    @ApiOperation({
+        summary: 'This endpoint creates reports for seeding',
+        description: 'This endpoint creates reports for seeding',
+    })
+    @ApiHeader({ name: 'Authorization', required: true })
+    @UsePipes(new ValidationPipe({ transform: true }))
+    async reportsMockup(): Promise<any> {
+        return this.seedingService.reportsMockup();
+    }
+
     @Delete('all')
     @ApiOperation({
         summary: 'This endpoint deletes all seeds',

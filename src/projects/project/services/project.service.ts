@@ -91,6 +91,12 @@ export class ProjectsService {
       });
   }
 
+  async createByAdmin(createProjectDto: CreateProjectDto): Promise<Project> {
+    const createdProject = new this.projectModel(createProjectDto);
+    await createdProject.save();
+    return createdProject;
+  }
+
   async findAllOfMyProjects(page: number = 1, limit: number = 10, isDraft: boolean, token: string): Promise<{ projects: Project[]; total: number }> {
     const jwtUser = await this.authService.decodeJWT(token);
 
@@ -236,7 +242,7 @@ export class ProjectsService {
       })
       .populate('courses')
       .populate('tags');
-      
+
     // .populate('thumbnail')
     // .populate({
     //   path: 'attachments',
@@ -503,7 +509,7 @@ export class ProjectsService {
     projectId: string,
     commentId: string,
   ): Promise<any> {
-    
+
     const currentProject = await this.projectModel.findOne({ _id: projectId, }).exec();
 
     if (currentProject !== null) {
@@ -535,8 +541,12 @@ export class ProjectsService {
         );
       } else {
         const objectId = new ObjectId(id);
-        const foundUser = await this.projectModel.findById(objectId).exec();
-        if (foundUser) {
+        const foundProject = await this.projectModel.findById(objectId).exec();
+        if (foundProject) {
+          // TODO delete all the related materials
+          // TODO delete all the related comments
+          // TODO delete all the likes
+          // TODO delete all of the archived
           return this.projectModel.findByIdAndDelete(objectId).exec();
         } else {
           throw new HttpException(

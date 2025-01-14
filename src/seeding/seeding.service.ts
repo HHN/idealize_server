@@ -10,6 +10,10 @@ import { usersMock } from 'src/users/user/seed/user.seed';
 import { ObjectId } from 'mongodb';
 import { CreateTagDto } from 'src/tags/tag/dtos/tag.dto';
 import { ProjectsMock } from 'src/projects/project/seed/projects.seed';
+import { Report, ReportDocument } from 'src/reports/report/schemas/report.schema';
+import { Comment, CommentDocument } from 'src/comments/comment/schemas/comment.schema';
+import { ReportsMock } from 'src/reports/report/seed/reports.seed';
+import { CommentsMock } from 'src/comments/comment/seed/comments.seed';
 
 @Injectable()
 export class SeedingService {
@@ -17,6 +21,8 @@ export class SeedingService {
         @InjectModel(Tag.name) private tagModel: Model<TagDocument>,
         @InjectModel(User.name) private userModel: Model<UserDocument>,
         @InjectModel(Project.name) private projectModel: Model<ProjectDocument>,
+        @InjectModel(Report.name) private reportModel: Model<ReportDocument>,
+        @InjectModel(Comment.name) private commentModel: Model<CommentDocument>,
         private readonly authService: AuthService,
     ) { }
 
@@ -31,6 +37,36 @@ export class SeedingService {
             }
         }));
 
+    }
+
+    async reportsMockup(): Promise<any> {
+        await this.reportModel.deleteMany({ isMockData: true }).exec();
+
+        const allUsers = await this.userModel.find<UserDocument>().exec();
+        const allProjects = await this.projectModel.find<ProjectDocument>().exec();
+
+        ReportsMock.map(report => {
+            report.userId = allUsers[Math.floor(Math.random() * allUsers.length)]._id as ObjectId;
+            report.projectId = allProjects[Math.floor(Math.random() * allProjects.length)]._id as ObjectId;
+            report.reportedUser = allUsers[Math.floor(Math.random() * allUsers.length)]._id as ObjectId;
+            report.isMockData = true;
+        });
+
+        return await this.reportModel.insertMany(ReportsMock);
+    }
+
+    async commentsMockup(): Promise<any> {
+        const allUsers = await this.userModel.find<UserDocument>().exec();
+        const allProjects = await this.projectModel.find<ProjectDocument>().exec();
+
+        CommentsMock.map(comment => {
+            comment.userId = allUsers[Math.floor(Math.random() * allUsers.length)]._id as ObjectId;
+            comment.projectId = allProjects[Math.floor(Math.random() * allProjects.length)]._id as ObjectId;
+            comment.parentCommentId = (Math.floor(Math.random()) % 2) === 0 ? null : allProjects[Math.floor(Math.random() * allProjects.length)]._id as ObjectId;
+            comment.isMockData = true;
+        });
+
+        return await this.commentModel.insertMany(CommentsMock);
     }
 
     async usersMockup(): Promise<User[]> {
@@ -117,6 +153,8 @@ export class SeedingService {
         await this.tagModel.deleteMany({ isMockData: true }).exec();
         await this.userModel.deleteMany({ isMockData: true }).exec();
         await this.projectModel.deleteMany({ isMockData: true }).exec();
+        await this.reportModel.deleteMany({ isMockData: true }).exec();
+        await this.commentModel.deleteMany({ isMockData: true }).exec();
 
         throw new HttpException(
             {

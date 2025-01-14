@@ -11,12 +11,12 @@ import { Response } from 'express';
 
 @ApiTags('Uploads')
 @Controller('uploads')
-@UseGuards(JwtAuthGuard)
 @ApiBearerAuth('JWT-auth')
 export class UploadsController {
 
     constructor(private readonly uploadService: UploadService) { }
 
+    @UseGuards(JwtAuthGuard)
     @Post('new')
     @ApiConsumes('multipart/form-data')
     @UseInterceptors(FileInterceptor('file', {
@@ -60,6 +60,7 @@ export class UploadsController {
         return this.uploadService.new(file, token);
     }
 
+    @UseGuards(JwtAuthGuard)
     @Delete(':id')
     @ApiOperation({
         summary: 'This endpoint deletes a file',

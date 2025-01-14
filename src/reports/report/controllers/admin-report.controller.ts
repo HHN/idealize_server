@@ -6,14 +6,14 @@ import { ReportService } from '../services/report.service';
 import { Report } from '../schemas/report.schema';
 
 @ApiTags('👑 Reports (admin access)')
-@Controller('admin/report')
+@Controller('admin/reports')
 @UseGuards(JwtAdminAuthGuard)
 @ApiBearerAuth('JWT-auth')
 export class AdminReportController {
 
     constructor(private readonly reportService: ReportService) { }
 
-    @Delete('admin/:id')
+    @Delete(':id')
     @ApiOperation({
         summary: 'This endpoint deletes an report by admin access',
         description: 'This endpoint deletes an report by admin access',
@@ -24,7 +24,7 @@ export class AdminReportController {
         return this.reportService.deleteByAdmin(id);
     }
 
-    @Get('admin/fetch-all')
+    @Get()
     @ApiOperation({
         summary: 'This endpoint returns all reports by admin access',
         description: 'This endpoint returns all reports by admin access',
