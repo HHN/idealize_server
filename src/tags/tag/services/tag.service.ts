@@ -18,6 +18,8 @@ export class TagService {
     }
 
     async findAll(requestQuery = null): Promise<Tag[]> {
+        if(requestQuery === null) requestQuery = { sortField : 'createdAt', sort: 'asc' };
+        
         const sortField = requestQuery.sortField ? requestQuery.sortField : 'createdAt';
         const sortOrder = requestQuery.sort === 'desc' ? -1 : 1;
 
