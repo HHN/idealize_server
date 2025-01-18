@@ -44,6 +44,21 @@ export class UploadService {
         }
     }
 
+    async removeByAdmin(fileId: string, token: string): Promise<boolean> {
+        const fileObject = await this.uploadModel.findById(fileId);
+
+        const fs = require('fs');
+        try {
+            await fs.promises.unlink(fileObject.path);
+            await this.uploadModel.findByIdAndDelete(fileId);
+
+            return true;
+        } catch (err) {
+            console.error(`failed to remove ${fileObject.path}: ${err.message}`);
+            return false;
+        }
+    }
+
     async get(id: string): Promise<string> {
         try {
             const fileObject = await this.uploadModel.findOne({ _id: new ObjectId(id) });
@@ -56,5 +71,9 @@ export class UploadService {
         } catch (er) {
             return null;
         }
+    }
+
+    async getAll(): Promise<Upload[]> {
+        return this.uploadModel.find().populate('user', '_id firstName lastName email');
     }
 }

@@ -9,6 +9,7 @@ import { UploadsController } from './upload/controller/upload.controller';
 import { UploadSchema } from './upload/schema/upload.schema';
 import { UploadService } from './upload/services/upload.service';
 import { configuration } from 'config/configuration';
+import { AdminUploadsController } from './upload/controller/admin-upload.controller';
 
 @Module({
   imports: [
@@ -45,7 +46,7 @@ import { configuration } from 'config/configuration';
       }),
     }),
   ],
-  controllers: [UploadsController],
+  controllers: [UploadsController, AdminUploadsController],
   providers: [UploadService],
 })
 export class UploadModule { }
