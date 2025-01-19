@@ -107,4 +107,11 @@ export class ReportService {
             })
             .exec();
     }
+
+    async isReported(projectId: string, userId: string, type: string = 'project'): Promise<boolean> {
+        const report = await this.reportModel.findOne({ projectId, userId: userId, type }).exec();
+        if (!!report) {
+            return true;
+        } else { return false; }
+    }
 }

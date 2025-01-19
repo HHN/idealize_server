@@ -10,6 +10,7 @@ import { CommentsService } from 'src/comments/comment/services/comment.service';
 import { ArchiveService } from 'src/archives/archive/services/archive.service';
 import { JoinRequestsService } from 'src/join-requests/join-request/services/join-requests.service';
 import { CreateJoinRequestDto } from 'src/join-requests/join-request/dtos/create-join-request.dto';
+import { ReportService } from 'src/reports/report/services/report.service';
 
 @Injectable()
 export class ProjectsService {
@@ -21,6 +22,7 @@ export class ProjectsService {
     private readonly commentsService: CommentsService,
     private readonly archiveService: ArchiveService,
     private readonly joinRequestService: JoinRequestsService,
+    private readonly reportProjectService: ReportService,
   ) { }
 
   async create(createProjectDto: CreateProjectDto, token: string): Promise<Project> {
@@ -331,6 +333,7 @@ export class ProjectsService {
     const likes = await this.projectLikeService.likesCount(project._id.toString());
     const isArchived = await this.archiveService.isArchivedOrNot(jwtUser.userId, project._id.toString());
     const joinedStatus = await this.joinRequestService.checkIfUserAlreadySentJoinRequest(project._id.toString(), jwtUser.userId);
+    const isReportedProject = await this.reportProjectService.isReported(project._id.toString(), jwtUser.userId);
 
 
     return {
@@ -341,6 +344,7 @@ export class ProjectsService {
       isArchived: (isArchived !== null),
       archiveId: (isArchived !== null) ? isArchived._id : null,
       joinedStatus: joinedStatus,
+      isReported: isReportedProject,
     }
   }
 

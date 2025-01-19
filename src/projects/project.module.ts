@@ -10,6 +10,7 @@ import { CommentsModule } from 'src/comments/comment.module';
 import { LikeModule } from 'src/likes/like.module';
 import { ArchiveModule } from 'src/archives/archive.module';
 import { AdminProjectsController } from './project/controllers/admin-project.controller';
+import { ReportModule } from 'src/reports/report.module';
 
 @Module({
     imports: [
@@ -22,6 +23,7 @@ import { AdminProjectsController } from './project/controllers/admin-project.con
         JoinRequestsModule,
         CommentsModule,
         LikeModule,
+        ReportModule,
         ArchiveModule,
     ],
     controllers: [
