@@ -165,11 +165,11 @@ export class NotificationService {
         if (jwtUser.userId !== readNotificationDto.userId) {
             throw new HttpException(
                 {
-                    status: HttpStatus.UNAUTHORIZED,
+                    status: HttpStatus.METHOD_NOT_ALLOWED,
                     error: 'Incorrect Data',
                     message: 'You are not authorized to perform this action!',
                 },
-                HttpStatus.UNAUTHORIZED,
+                HttpStatus.METHOD_NOT_ALLOWED,
             );
         }
 

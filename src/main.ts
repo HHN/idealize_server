@@ -51,8 +51,9 @@ async function bootstrap() {
 
   /* Enable rate limiting */
   app.use(rateLimit({
-    windowMs: 10 * 60 * 1000,
-    max: 300,
+    windowMs: 5 * 60000, // 5 minutes
+    standardHeaders: true,
+    max: 1000,
   }));
 
 

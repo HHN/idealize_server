@@ -326,10 +326,12 @@ export class ProjectsService {
       })
       .lean();
 
-    const isLiked = likedProjectIds.likes.findIndex(item => item.projectId == project._id) !== -1;
+    const isLiked = likedProjectIds.likes.findIndex(item => item.projectId.toString() == project._id.toString()) !== -1;
     const comments = await this.commentsService.findAllOfCommentsCount(project._id.toString());
     const likes = await this.projectLikeService.likesCount(project._id.toString());
     const isArchived = await this.archiveService.isArchivedOrNot(jwtUser.userId, project._id.toString());
+    const joinedStatus = await this.joinRequestService.checkIfUserAlreadySentJoinRequest(project._id.toString(), jwtUser.userId);
+
 
     return {
       ...project,
@@ -338,6 +340,7 @@ export class ProjectsService {
       likes,
       isArchived: (isArchived !== null),
       archiveId: (isArchived !== null) ? isArchived._id : null,
+      joinedStatus: joinedStatus,
     }
   }
 

@@ -59,11 +59,11 @@ export class JoinRequestsService {
             if (myProjectCheck > 0) {
                 throw new HttpException(
                     {
-                        status: HttpStatus.UNAUTHORIZED,
+                        status: HttpStatus.BAD_REQUEST,
                         error: 'Incorrect Data',
                         message: 'You cannot send join request to your project!',
                     },
-                    HttpStatus.UNAUTHORIZED,
+                    HttpStatus.BAD_REQUEST,
                 );
 
             }
@@ -87,11 +87,11 @@ export class JoinRequestsService {
             } else {
                 throw new HttpException(
                     {
-                        status: HttpStatus.UNAUTHORIZED,
-                        error: 'Incorrect Data',
+                        status: HttpStatus.BAD_REQUEST,
+                        error: 'Already Sent',
                         message: 'You have already sent a join request to this project!',
                     },
-                    HttpStatus.UNAUTHORIZED,
+                    HttpStatus.BAD_REQUEST,
                 );
             }
         }
@@ -103,11 +103,11 @@ export class JoinRequestsService {
         if (jwtUser.userId !== actionJoinRequestDto.userId) {
             throw new HttpException(
                 {
-                    status: HttpStatus.UNAUTHORIZED,
+                    status: HttpStatus.BAD_REQUEST,
                     error: 'Incorrect Data',
                     message: 'You are not authorized to perform this action!',
                 },
-                HttpStatus.UNAUTHORIZED,
+                HttpStatus.BAD_REQUEST,
             );
         }
 
@@ -179,5 +179,18 @@ export class JoinRequestsService {
         } else {
             return false;
         }
+    }
+
+    async checkIfUserAlreadySentJoinRequest(projectId: string, userId: string): Promise<'canceled' | 'accepted' | 'pending' | null> {
+        const joinRequest = await this.joinRequestModel.findOne({
+            projectId: projectId,
+            sender: userId,
+        });
+        
+        if(joinRequest === null){
+            return null;
+        }
+
+        return joinRequest.status;
     }
 }
