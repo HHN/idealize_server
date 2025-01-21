@@ -181,13 +181,81 @@ export class JoinRequestsService {
         }
     }
 
+    async removeTeamMemberRequest(projectId: string, teamMemberId: string): Promise<void> {
+        await this.joinRequestModel.findOneAndDelete({
+            projectId: projectId,
+            receiver: teamMemberId,
+            type: 'addTeamMember',
+            status: 'pending'
+        });
+
+        // TODO : Add notification
+    }
+
+    async upateTeamMemberRequests(senderId: string, projectId: string, keepReceiverIds: string[], token: string): Promise<void> {
+
+        const requests = await this.joinRequestModel.find({
+            projectId: projectId,
+            sender: senderId,
+            type: 'addTeamMember',
+            status: 'pending'
+        });
+
+
+        for (const receiver of keepReceiverIds) {
+            if (!(requests.map((request) => request.receiver.toString()).includes(receiver))) {
+                await this.joinRequestModel.create({
+                    projectId: projectId,
+                    receiver: receiver,
+                    sender: senderId,
+                    type: 'addTeamMember',
+                    status: 'pending'
+                });
+
+                this.notificationService.createNew(
+                    {
+                        title: 'Join Request',
+                        message: 'Join Request',
+                        projectId: projectId,
+                        type: 'addTeamMember',
+                        sender: senderId,
+                        receiver: receiver,
+                    }, token);
+            }
+        }
+
+        await this.joinRequestModel.deleteMany({
+            projectId: projectId,
+            receiver: { $nin: keepReceiverIds },
+            sender: senderId,
+            type: 'addTeamMember',
+            status: 'pending'
+        });
+
+
+
+        // TODO : Add notification
+    }
+
+    async findPendingMembers(id: string): Promise<string[]> {
+        const project = await this.projectModel.findOne({ _id: id });
+        if (!!project) {
+            const membersPending = await this.joinRequestModel.find({ projectId: id, status: 'pending', type: 'addTeamMember' });
+            if (membersPending.length > 0) {
+                return membersPending.map((member) => member.receiver.toString());
+            }
+        } else {
+            return [];
+        }
+    }
+
     async checkIfUserAlreadySentJoinRequest(projectId: string, userId: string): Promise<'canceled' | 'accepted' | 'pending' | null> {
         const joinRequest = await this.joinRequestModel.findOne({
             projectId: projectId,
             sender: userId,
         });
-        
-        if(joinRequest === null){
+
+        if (joinRequest === null) {
             return null;
         }
 

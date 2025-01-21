@@ -11,12 +11,14 @@ import { ArchiveService } from 'src/archives/archive/services/archive.service';
 import { JoinRequestsService } from 'src/join-requests/join-request/services/join-requests.service';
 import { CreateJoinRequestDto } from 'src/join-requests/join-request/dtos/create-join-request.dto';
 import { ReportService } from 'src/reports/report/services/report.service';
+import { UserDocument } from 'src/users/user/schemas/user.schema';
 
 @Injectable()
 export class ProjectsService {
 
   constructor(
     @InjectModel('Project') private readonly projectModel: Model<ProjectDocument>,
+    @InjectModel('User') private readonly userModel: Model<UserDocument>,
     private readonly authService: AuthService,
     private readonly projectLikeService: ProjectLikeService,
     private readonly commentsService: CommentsService,
@@ -178,6 +180,14 @@ export class ProjectsService {
       const likes = await this.projectLikeService.likesCount(project._id.toString());
       const isArchived = await this.archiveService.isArchivedOrNot(jwtUser.userId, project._id.toString());
 
+      var pendingMembers = [];
+      const pendingMembersId = await this.joinRequestService.findPendingMembers(project._id.toString());
+      if (pendingMembersId.length > 0) {
+        pendingMembers = (await this.userModel.find({ _id: { $in: pendingMembersId } })
+          .lean()
+          .select('_id firstName lastName email userType'))
+      }
+
       projectsWithLikes.push({
         ...project,
         isLiked,
@@ -185,6 +195,7 @@ export class ProjectsService {
         likes,
         isArchived: (isArchived !== null),
         archiveId: (isArchived !== null) ? isArchived._id : null,
+        pendingMembers,
       });
     }
 
@@ -375,7 +386,35 @@ export class ProjectsService {
     }
 
     if (currentProject !== null) {
-      return this.projectModel.findByIdAndUpdate(id, updateProjectDto, { new: true }).exec();
+
+      var membersRequestsShouldBeKept = [];
+      const existingTeamMembers: string[] = currentProject.teamMembers.map(item => item.toString());
+      const pendingTeamMembers: string[] = await this.joinRequestService.findPendingMembers(id);
+      const newTeamMembers: string[] = updateProjectDto.teamMembers;
+
+      var updatedUsers: string[] = [];
+
+      existingTeamMembers.forEach((member) => {
+        if (newTeamMembers.includes(member)) {
+          updatedUsers.push(member);
+        }
+      });
+
+      pendingTeamMembers.forEach((member) => {
+        if (newTeamMembers.includes(member)) {
+          membersRequestsShouldBeKept.push(member);
+        }
+      });
+
+      newTeamMembers.forEach((member) => {
+        if (!existingTeamMembers.includes(member) && !pendingTeamMembers.includes(member)) {
+          membersRequestsShouldBeKept.push(member);
+        }
+      })
+
+      await this.joinRequestService.upateTeamMemberRequests(jwtUser.userId, currentProject._id.toString(), membersRequestsShouldBeKept, token);
+
+      return this.projectModel.findByIdAndUpdate(id, { ...updateProjectDto, teamMembers: updatedUsers }, { new: true }).exec();
     } else {
       throw new HttpException(
         {

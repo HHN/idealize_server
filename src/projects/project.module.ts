@@ -11,12 +11,14 @@ import { LikeModule } from 'src/likes/like.module';
 import { ArchiveModule } from 'src/archives/archive.module';
 import { AdminProjectsController } from './project/controllers/admin-project.controller';
 import { ReportModule } from 'src/reports/report.module';
+import { UserSchema } from 'src/users/user/schemas/user.schema';
 
 @Module({
     imports: [
         MongooseModule.forFeature(
             [
                 { name: 'Project', schema: ProjectSchema },
+                { name: 'User', schema: UserSchema },
             ]),
         AuthModule,
         NotificationModule,
