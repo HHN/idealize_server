@@ -182,7 +182,7 @@ export class ProjectsService {
 
       var pendingMembers = [];
       const pendingMembersId = await this.joinRequestService.findPendingMembers(project._id.toString());
-      if (pendingMembersId.length > 0) {
+      if (pendingMembersId && pendingMembersId.length > 0) {
         pendingMembers = (await this.userModel.find({ _id: { $in: pendingMembersId } })
           .lean()
           .select('_id firstName lastName email userType'))
@@ -394,24 +394,30 @@ export class ProjectsService {
 
       var updatedUsers: string[] = [];
 
-      existingTeamMembers.forEach((member) => {
-        if (newTeamMembers.includes(member)) {
-          updatedUsers.push(member);
-        }
-      });
-
-      pendingTeamMembers.forEach((member) => {
-        if (newTeamMembers.includes(member)) {
-          membersRequestsShouldBeKept.push(member);
-        }
-      });
-
-      newTeamMembers.forEach((member) => {
-        if (!existingTeamMembers.includes(member) && !pendingTeamMembers.includes(member)) {
-          membersRequestsShouldBeKept.push(member);
-        }
-      })
-
+      if(existingTeamMembers){
+        existingTeamMembers.forEach((member) => {
+          if (newTeamMembers.includes(member)) {
+            updatedUsers.push(member);
+          }
+        });
+      }
+      
+      if(pendingTeamMembers){
+        pendingTeamMembers.forEach((member) => {
+          if (newTeamMembers.includes(member)) {
+            membersRequestsShouldBeKept.push(member);
+          }
+        });
+      }
+      
+      if(newTeamMembers){
+        newTeamMembers.forEach((member) => {
+          if (!existingTeamMembers.includes(member) && !pendingTeamMembers.includes(member)) {
+            membersRequestsShouldBeKept.push(member);
+          }
+        })
+      }
+      
       await this.joinRequestService.upateTeamMemberRequests(jwtUser.userId, currentProject._id.toString(), membersRequestsShouldBeKept, token);
 
       return this.projectModel.findByIdAndUpdate(id, { ...updateProjectDto, teamMembers: updatedUsers }, { new: true }).exec();
