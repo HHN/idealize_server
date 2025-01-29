@@ -12,6 +12,7 @@ import { JoinRequestsService } from 'src/join-requests/join-request/services/joi
 import { CreateJoinRequestDto } from 'src/join-requests/join-request/dtos/create-join-request.dto';
 import { ReportService } from 'src/reports/report/services/report.service';
 import { UserDocument } from 'src/users/user/schemas/user.schema';
+import { ArchiveDocument } from 'src/archives/archive/schemas/archive.schema';
 
 @Injectable()
 export class ProjectsService {
@@ -19,10 +20,10 @@ export class ProjectsService {
   constructor(
     @InjectModel('Project') private readonly projectModel: Model<ProjectDocument>,
     @InjectModel('User') private readonly userModel: Model<UserDocument>,
+    @InjectModel('Archive') private readonly archiveModel: Model<ArchiveDocument>,
     private readonly authService: AuthService,
     private readonly projectLikeService: ProjectLikeService,
     private readonly commentsService: CommentsService,
-    private readonly archiveService: ArchiveService,
     private readonly joinRequestService: JoinRequestsService,
     private readonly reportProjectService: ReportService,
   ) { }
@@ -178,7 +179,7 @@ export class ProjectsService {
       const isLiked = likedProjectIds.likes.findIndex(item => item.projectId == project._id) !== -1;
       const comments = await this.commentsService.findAllOfCommentsCount(project._id.toString());
       const likes = await this.projectLikeService.likesCount(project._id.toString());
-      const isArchived = await this.archiveService.isArchivedOrNot(jwtUser.userId, project._id.toString());
+      const isArchived = await this.archiveModel.findOne({ projectId: project._id.toString() });
 
       var pendingMembers = [];
       const pendingMembersId = await this.joinRequestService.findPendingMembers(project._id.toString());
@@ -214,7 +215,7 @@ export class ProjectsService {
 
     const jwtUser = await this.authService.decodeJWT(token);
     const likedProjectIds = await this.projectLikeService.findAll("", jwtUser.userId);
-    const favoriteProjectIds = await this.archiveService.getAllArchives(token);
+    const favoriteProjectIds = await this.archiveModel.find({ userId: jwtUser.userId });
 
     const skip = (page - 1) * limit;
     const query = {};
@@ -229,11 +230,11 @@ export class ProjectsService {
       query['title'] = { $regex: search, $options: 'i' };
     }
 
-    if(filter === 'my-projects') {
+    if (filter === 'my-projects') {
       query['owner'] = jwtUser.userId;
     }
 
-    if(filter === 'favorite-projects') {
+    if (filter === 'favorite-projects') {
       query['_id'] = { $in: favoriteProjectIds.map(item => item.projectId) };
     }
 
@@ -292,7 +293,7 @@ export class ProjectsService {
       const isLiked = likedProjectIds.likes.findIndex(item => item.projectId == project._id) !== -1;
       const comments = await this.commentsService.findAllOfCommentsCount(project._id.toString());
       const likes = await this.projectLikeService.likesCount(project._id.toString());
-      const isArchived = await this.archiveService.isArchivedOrNot(jwtUser.userId, project._id.toString());
+      const isArchived = await this.archiveModel.findOne({ userId: jwtUser.userId, projectId: project._id.toString() });
 
       projectsWithLikes.push({
         ...project,
@@ -359,7 +360,7 @@ export class ProjectsService {
     const isLiked = likedProjectIds.likes.findIndex(item => item.projectId.toString() == project._id.toString()) !== -1;
     const comments = await this.commentsService.findAllOfCommentsCount(project._id.toString());
     const likes = await this.projectLikeService.likesCount(project._id.toString());
-    const isArchived = await this.archiveService.isArchivedOrNot(jwtUser.userId, project._id.toString());
+    const isArchived = await this.archiveModel.findOne({ userId: jwtUser.userId, projectId: project._id.toString() });
     const joinedStatus = await this.joinRequestService.checkIfUserAlreadySentJoinRequest(project._id.toString(), jwtUser.userId);
     const isReportedProject = await this.reportProjectService.isReported(project._id.toString(), jwtUser.userId);
 
@@ -411,30 +412,30 @@ export class ProjectsService {
 
       var updatedUsers: string[] = [];
 
-      if(existingTeamMembers){
+      if (existingTeamMembers) {
         existingTeamMembers.forEach((member) => {
           if (newTeamMembers.includes(member)) {
             updatedUsers.push(member);
           }
         });
       }
-      
-      if(pendingTeamMembers){
+
+      if (pendingTeamMembers) {
         pendingTeamMembers.forEach((member) => {
           if (newTeamMembers.includes(member)) {
             membersRequestsShouldBeKept.push(member);
           }
         });
       }
-      
-      if(newTeamMembers){
+
+      if (newTeamMembers) {
         newTeamMembers.forEach((member) => {
           if (!existingTeamMembers.includes(member) && !pendingTeamMembers.includes(member)) {
             membersRequestsShouldBeKept.push(member);
           }
         })
       }
-      
+
       await this.joinRequestService.upateTeamMemberRequests(jwtUser.userId, currentProject._id.toString(), membersRequestsShouldBeKept, token);
 
       return this.projectModel.findByIdAndUpdate(id, { ...updateProjectDto, teamMembers: updatedUsers }, { new: true }).exec();

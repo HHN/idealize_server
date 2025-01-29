@@ -5,6 +5,8 @@ import { Archive, ArchiveDocument } from '../schemas/archive.schema';
 import { CreateArchiveDto } from '../dtos/create-archive.dto';
 import { AuthService } from 'src/auth/auth.service';
 import { NotificationService } from 'src/notifications/notification/services/notification.service';
+import { ProjectLikeService } from 'src/likes/like/services/like-project.service';
+import { CommentsService } from 'src/comments/comment/services/comment.service';
 
 @Injectable()
 export class ArchiveService {
@@ -12,6 +14,8 @@ export class ArchiveService {
         @InjectModel(Archive.name) private archiveModel: Model<ArchiveDocument>,
         private authService: AuthService,
         private readonly notificationService: NotificationService,
+        private readonly projectLikeService: ProjectLikeService,
+        private readonly commentsService: CommentsService,
     ) { }
 
     async new(createArchiveDto: CreateArchiveDto, token: string): Promise<Archive> {
@@ -42,9 +46,11 @@ export class ArchiveService {
         }
     }
 
-    async getAllArchives(token: string): Promise<Archive[]> {
+    async getAllArchives(token: string): Promise<any> {
         const jwtUser = await this.authService.decodeJWT(token);
-        return this.archiveModel.find({ userId: jwtUser.userId })
+
+        const likedProjectIds = await this.projectLikeService.findAll("", jwtUser.userId);
+        const projects = await this.archiveModel.find({ userId: jwtUser.userId })
             .populate({
                 path: 'userId',
                 select: '_id firstName lastName email status userType interestedTags interestedCourses username',
@@ -130,7 +136,33 @@ export class ArchiveService {
                     model: 'Upload',
                 }
             })
-            .exec();
+            .lean();
+
+
+        let projectsWithLikes = [];
+
+        for (const project of projects) {
+            const isLiked = likedProjectIds.likes.findIndex(item => item.projectId == project.projectId._id) !== -1;
+            const comments = await this.commentsService.findAllOfCommentsCount(project.projectId._id.toString());
+            const likes = await this.projectLikeService.likesCount(project.projectId._id.toString());
+            const isArchived = await this.isArchivedOrNot(jwtUser.userId, project.projectId._id.toString());
+
+            const projectId = {
+                ...project.projectId,
+                isLiked,
+                comments,
+                likes,
+                isArchived: (isArchived !== null),
+                archiveId: (isArchived !== null) ? isArchived._id : null,
+            };
+
+            projectsWithLikes.push({
+                '_id': project._id,
+                projectId,
+            });
+        }
+
+        return projectsWithLikes;
     }
 
     async isArchivedOrNot(userId: string, projectId: string): Promise<any> {

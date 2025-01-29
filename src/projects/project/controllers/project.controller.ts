@@ -42,8 +42,9 @@ export class ProjectsController {
     @Query('owner') owner?: string,
     @Query('search') search?: string,
     @Query('sort') sort?: string,
+    @Query('filter') filter?: string,
   ): Promise<{ projects: Project[]; total: number }> {
-    return this.projectsService.findAll(page, limit, token, owner, search, sort);
+    return this.projectsService.findAll(page, limit, token, owner, search, sort, filter);
   }
 
   @Get('my-projects')

@@ -20,6 +20,7 @@ import { ChatService } from 'chat-server/chat.service';
 import { ChatGateway } from 'chat-server/chat.gateway';
 import { AuthService } from './auth/auth.service';
 import { SeedingModule } from './seeding/seeding.module';
+import { ArchiveModule } from './archives/archive.module';
 
 @Module({
   imports: [
@@ -47,7 +48,7 @@ import { SeedingModule } from './seeding/seeding.module';
     MailerModule,
     AdminModule,
     SeedingModule,
-    //ArchiveModule,
+    ArchiveModule,
   ],
   controllers: [AppController],
   providers: [

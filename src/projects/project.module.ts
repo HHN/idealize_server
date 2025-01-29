@@ -12,6 +12,7 @@ import { ArchiveModule } from 'src/archives/archive.module';
 import { AdminProjectsController } from './project/controllers/admin-project.controller';
 import { ReportModule } from 'src/reports/report.module';
 import { UserSchema } from 'src/users/user/schemas/user.schema';
+import { ArchiveSchema } from 'src/archives/archive/schemas/archive.schema';
 
 @Module({
     imports: [
@@ -19,6 +20,7 @@ import { UserSchema } from 'src/users/user/schemas/user.schema';
             [
                 { name: 'Project', schema: ProjectSchema },
                 { name: 'User', schema: UserSchema },
+                { name: 'Archive', schema: ArchiveSchema },
             ]),
         AuthModule,
         NotificationModule,
@@ -26,7 +28,6 @@ import { UserSchema } from 'src/users/user/schemas/user.schema';
         CommentsModule,
         LikeModule,
         ReportModule,
-        ArchiveModule,
     ],
     controllers: [
         ProjectsController,
