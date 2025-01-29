@@ -202,10 +202,19 @@ export class ProjectsService {
     return { projects: projectsWithLikes, total };
   }
 
-  async findAll(page: number = 1, limit: number = 10, token: string, owner?: string, search: string = '', sort: string = '_id'): Promise<{ projects: Project[]; total: number }> {
+  async findAll(
+    page: number = 1,
+    limit: number = 10,
+    token: string,
+    owner?: string,
+    search: string = '',
+    sort: string = '_id',
+    filter: string = 'all',
+  ): Promise<{ projects: Project[]; total: number }> {
 
     const jwtUser = await this.authService.decodeJWT(token);
     const likedProjectIds = await this.projectLikeService.findAll("", jwtUser.userId);
+    const favoriteProjectIds = await this.archiveService.getAllArchives(token);
 
     const skip = (page - 1) * limit;
     const query = {};
@@ -218,6 +227,14 @@ export class ProjectsService {
 
     if (search) {
       query['title'] = { $regex: search, $options: 'i' };
+    }
+
+    if(filter === 'my-projects') {
+      query['owner'] = jwtUser.userId;
+    }
+
+    if(filter === 'favorite-projects') {
+      query['_id'] = { $in: favoriteProjectIds.map(item => item.projectId) };
     }
 
 
