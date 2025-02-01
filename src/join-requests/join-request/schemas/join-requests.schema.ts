@@ -22,6 +22,9 @@ export class JoinRequest {
 
     @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true })
     receiver: Types.ObjectId;
+
+    @Prop({ type: String, required: false, default: '' })
+    message: string;
 }
 
 export const JoinRequestsSchema = SchemaFactory.createForClass(JoinRequest);
