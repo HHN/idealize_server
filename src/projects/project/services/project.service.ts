@@ -102,7 +102,7 @@ export class ProjectsService {
     return createdProject;
   }
 
-  async findAllOfMyProjects(page: number = 1, limit: number = 10, isDraft: boolean, token: string): Promise<{ projects: Project[]; total: number }> {
+  async findAllOfMyProjects(page: number = 1, limit: number = 10, isDraft: boolean, token: string, filterByTag?: string): Promise<{ projects: Project[]; total: number }> {
     const jwtUser = await this.authService.decodeJWT(token);
 
     const skip = (page - 1) * limit;
@@ -119,6 +119,10 @@ export class ProjectsService {
 
     if (typeof isDraft === 'boolean') {
       query['isDraft'] = isDraft;
+    }
+
+    if (filterByTag !== '') {
+      query['tags'] = { $in: [filterByTag] };
     }
 
     const likedProjectIds = await this.projectLikeService.findAll("", jwtUser.userId);
@@ -211,6 +215,7 @@ export class ProjectsService {
     search: string = '',
     sort: string = '_id',
     filter: string = 'all',
+    filterByTag: string = '',
   ): Promise<{ projects: Project[]; total: number }> {
 
     const jwtUser = await this.authService.decodeJWT(token);
@@ -236,6 +241,10 @@ export class ProjectsService {
 
     if (filter === 'favorite-projects') {
       query['_id'] = { $in: favoriteProjectIds.map(item => item.projectId) };
+    }
+
+    if (filterByTag !== '') {
+      query['tags'] = { $in: [filterByTag] };
     }
 
 

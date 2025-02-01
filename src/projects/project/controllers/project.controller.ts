@@ -43,8 +43,9 @@ export class ProjectsController {
     @Query('search') search?: string,
     @Query('sort') sort?: string,
     @Query('filter') filter?: string,
+    @Query('filterByTag') filterByTag?: string,
   ): Promise<{ projects: Project[]; total: number }> {
-    return this.projectsService.findAll(page, limit, token, owner, search, sort, filter);
+    return this.projectsService.findAll(page, limit, token, owner, search, sort, filter, filterByTag);
   }
 
   @Get('my-projects')
@@ -60,8 +61,9 @@ export class ProjectsController {
     @Query('limit') limit: number = 10,
     @Query('isDraft') isDraft: boolean,
     @Headers('Authorization') token: string,
+    @Query('filterByTag') filterByTag?: string,
   ): Promise<{ projects: Project[]; total: number }> {
-    return this.projectsService.findAllOfMyProjects(page, limit, isDraft, token);
+    return this.projectsService.findAllOfMyProjects(page, limit, isDraft, token, filterByTag);
   }
 
   @Get(':id')
