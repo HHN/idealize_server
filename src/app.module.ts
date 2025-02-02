@@ -21,6 +21,7 @@ import { ChatGateway } from 'chat-server/chat.gateway';
 import { AuthService } from './auth/auth.service';
 import { SeedingModule } from './seeding/seeding.module';
 import { ArchiveModule } from './archives/archive.module';
+import { BugReportModule } from './bug-report/bug-report.module';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { ArchiveModule } from './archives/archive.module';
     AdminModule,
     SeedingModule,
     ArchiveModule,
+    BugReportModule,
   ],
   controllers: [AppController],
   providers: [

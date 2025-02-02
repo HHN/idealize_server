@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Comment, CommentDocument } from '../schemas/comment.schema';
 import { CreateCommentDto } from '../dtos/create-comment.dto';
 import { AuthService } from 'src/auth/auth.service';
@@ -101,59 +101,67 @@ export class CommentsService {
     return { comments: commentsData, total };
   }
 
-  async findAllByProjectId(page: number = 1, limit: number = 10, projectId: string): Promise<{ comments: Comment[]; total: number }> {
+  async findAllByProjectId(
+    page: number = 1,
+    limit: number = 10,
+    projectId: string
+  ): Promise<{ comments: Comment[]; total: number }> {
     const skip = (page - 1) * limit;
-    const commentsData = await this.commentModel.find({ projectId, parentCommentId: null })
-      .populate({
-        path: 'userId',
-        select: '_id firstName lastName email status userType username profilePicture',
-        model: 'User',
-        populate: {
-          path: 'profilePicture',
-          model: 'Upload',
-          populate: {
-            path: 'user',
-            model: 'User',
-            select: '_id firstName lastName email userType profilePicture'
-          },
-        }
-      })
-      .populate({
-        path: 'parentCommentId',
-        model: 'Comment',
-        populate: {
-          path: 'userId',
-          model: 'User',
-          select: '_id firstName lastName email userType profilePicture',
-          populate: {
-            path: 'profilePicture',
-            model: 'Upload',
-            populate: {
-              path: 'user',
-              model: 'User',
-              select: '_id firstName lastName email userType profilePicture'
+
+    // Fetch all comments for the project
+    const allComments = await this.commentModel.aggregate([
+      { $match: { projectId: new Types.ObjectId(projectId) } },
+      { $sort: { createdAt: -1, _id: -1 } },
+
+      // Populate User details
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'userId',
+          foreignField: '_id',
+          as: 'user',
+          pipeline: [
+            {
+              $lookup: {
+                from: 'uploads',
+                localField: 'profilePicture',
+                foreignField: '_id',
+                as: 'profilePicture'
+              }
             },
-          },
-        },
-      })
-      .skip(skip)
-      .limit(limit)
-      .sort({ 'createdAt': 'desc', '_id': 'desc' })
-      .lean();
+            {
+              $project: {
+                _id: 1,
+                firstName: 1,
+                lastName: 1,
+                email: 1,
+                userType: 1,
+                profilePicture: { $arrayElemAt: ['$profilePicture', 0] }
+              }
+            }
+          ]
+        }
+      },
+      { $unwind: '$user' }
+    ]);
 
-
-    let commentsWithReplies = [];
-
-    for (const comment of commentsData) {
-      const replies = await this.findAllRepliesByCommentId(1, 5, comment._id.toString());
-      commentsWithReplies.push({
-        ...comment,
-        replies
-      });
+    // Function to build a nested comment structure
+    function buildNestedComments(comments: any[], parentId: string | null = null): any[] {
+      return comments
+        .filter(comment => String(comment.parentCommentId) === String(parentId))
+        .map(comment => ({
+          ...comment,
+          replies: buildNestedComments(comments, String(comment._id))
+        }));
     }
 
-    const total = await this.commentModel.countDocuments({ projectId });
-    return { comments: commentsWithReplies, total };
+    // Get paginated root-level comments
+    const rootComments = buildNestedComments(allComments, null).slice(skip, skip + limit);
+
+    // Get total count of root-level comments
+    const total = allComments.filter(comment => !comment.parentCommentId).length;
+
+    return { comments: rootComments, total };
   }
 
   async findAll(page: number = 1, limit: number = 10,): Promise<{ comments: Comment[]; total: number }> {
