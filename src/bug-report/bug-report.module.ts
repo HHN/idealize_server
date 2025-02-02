@@ -4,6 +4,7 @@ import { AuthModule } from 'src/auth/auth.module';
 import { BugReportSchema } from './bug-report/schemas/bug-report.schema';
 import { BugReportController } from './bug-report/controllers/bug-report.controller';
 import { BugReportService } from './bug-report/services/bug-controller.service';
+import { AdminBugReportController } from './bug-report/controllers/admin-bug-report.controller';
 
 @Module({
     imports: [
@@ -13,7 +14,8 @@ import { BugReportService } from './bug-report/services/bug-controller.service';
         AuthModule,
     ],
     controllers: [
-      BugReportController,  
+        BugReportController,
+        AdminBugReportController,
     ],
     providers: [
         BugReportService,
@@ -21,7 +23,7 @@ import { BugReportService } from './bug-report/services/bug-controller.service';
     exports: [
         MongooseModule.forFeature([
             { name: 'BugReport', schema: BugReportSchema },
-        
+
         ]),
     ]
 })

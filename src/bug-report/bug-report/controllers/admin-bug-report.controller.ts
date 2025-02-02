@@ -8,7 +8,7 @@ import { CreateBugReportDto } from '../dtos/create-bug-report.dto';
 @Controller('admin/bug-report')
 @UseGuards(JwtAdminAuthGuard)
 @ApiBearerAuth('JWT-auth')
-export class BugReportController {
+export class AdminBugReportController {
     constructor(private readonly bugReportService: BugReportService) { }
 
     @Get()
