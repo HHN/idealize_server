@@ -5,7 +5,7 @@ import { BugReportService } from '../services/bug-controller.service';
 import { CreateBugReportDto } from '../dtos/create-bug-report.dto';
 
 @ApiTags('👑 Bug Reports (admin access)')
-@Controller('bug-report')
+@Controller('admin/bug-report')
 @UseGuards(JwtAdminAuthGuard)
 @ApiBearerAuth('JWT-auth')
 export class BugReportController {
