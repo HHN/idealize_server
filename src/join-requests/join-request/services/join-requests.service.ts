@@ -32,7 +32,7 @@ export class JoinRequestsService {
             this.notificationService.createNew(
                 {
                     title: 'Join Request',
-                    message: 'Join Request',
+                    message: 'join_request',
                     projectId: createJoinRequestDto.projectId,
                     type: 'addTeamMember',
                     sender: jwtUser.userId,
@@ -75,7 +75,7 @@ export class JoinRequestsService {
                 this.notificationService.createNew(
                     {
                         title: 'Join Request',
-                        message: 'Join Request',
+                        message: 'join_request',
                         projectId: createJoinRequestDto.projectId,
                         type: 'joinTeamMember',
                         sender: jwtUser.userId,
@@ -118,32 +118,34 @@ export class JoinRequestsService {
             });
 
         if (joinRequest !== null) {
-            let notifTitle = '';
-            let notifMessage = '';
-
             if (actionJoinRequestDto.action === 'accepted') {
-                notifTitle = 'Join Request Accepted';
-                notifMessage = 'Join Request Accepted';
-
                 await this.addTeamMember(
                     actionJoinRequestDto.projectId,
                     [joinRequest.type == 'addTeamMember' ?
                         joinRequest.receiver.toString() :
                         joinRequest.sender.toString()]
                 );
-            } else {
-                notifTitle = 'Join Request Canceled';
-                notifMessage = 'Join Request Canceled';
+
             }
 
             // Create a notification
+            if (joinRequest.type == 'addTeamMember') {
+                await this.notificationService.processOne(
+                    actionJoinRequestDto.notificationId,
+                    actionJoinRequestDto.action == 'accepted' ? 'join_req_accepted_by_you' : 'join_req_canceled_by_you'
+                );
+            } else {
+                await this.notificationService.processOne(
+                    actionJoinRequestDto.notificationId,
+                    actionJoinRequestDto.action == 'accepted' ? 'join_req_accepted_by_you' : 'join_req_canceled_by_you'
+                );
+            }
 
-            await this.notificationService.processOne(actionJoinRequestDto.notificationId, notifMessage);
             const notificationModel = await this.notificationService.getOneNotification(actionJoinRequestDto.notificationId);
             await this.notificationService.createNew(
                 {
-                    title: notifTitle,
-                    message: notifMessage,
+                    title: actionJoinRequestDto.action == 'accepted' ? 'join_req_accepted' : 'join_req_canceled',
+                    message: actionJoinRequestDto.action == 'accepted' ? 'join_req_accepted' : 'join_req_canceled',
                     projectId: actionJoinRequestDto.projectId,
                     type: notificationModel.type,
                     sender: jwtUser.userId,
@@ -215,7 +217,7 @@ export class JoinRequestsService {
                 this.notificationService.createNew(
                     {
                         title: 'Join Request',
-                        message: 'Join Request',
+                        message: 'join_request',
                         projectId: projectId,
                         type: 'addTeamMember',
                         sender: senderId,

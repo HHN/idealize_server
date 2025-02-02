@@ -121,7 +121,7 @@ export class ProjectsService {
       query['isDraft'] = isDraft;
     }
 
-    if (filterByTag !== '') {
+    if (!!filterByTag) {
       query['tags'] = { $in: [filterByTag] };
     }
 
@@ -243,7 +243,7 @@ export class ProjectsService {
       query['_id'] = { $in: favoriteProjectIds.map(item => item.projectId) };
     }
 
-    if (filterByTag !== '') {
+    if (!!filterByTag) {
       query['tags'] = { $in: [filterByTag] };
     }
 
