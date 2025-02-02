@@ -1,4 +1,4 @@
-import { Controller, Post, Headers, UseGuards, UsePipes, ValidationPipe, Delete, Param, Body, Get, Patch } from '@nestjs/common';
+import { Controller, Post, Headers, UseGuards, UsePipes, ValidationPipe, Delete, Param, Body, Get, Patch, Put } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags, ApiHeader, ApiBody } from '@nestjs/swagger';
 import { JwtAdminAuthGuard, JwtAuthGuard } from 'src/auth/jwt.guard';
 import { BugReportService } from '../services/bug-controller.service';
@@ -34,7 +34,7 @@ export class BugReportController {
         return this.bugReportService.removeByAdmin(id);
     }
 
-    @Patch(':id/accept')
+    @Put(':id/accept')
     @ApiOperation({
         summary: 'This endpoint accepts a bug report by admin access',
         description: 'This endpoint accepts a bug report by admin access',
@@ -45,7 +45,7 @@ export class BugReportController {
         return this.bugReportService.updateByAdmin(id, true);
     }
 
-    @Patch(':id/deny')
+    @Put(':id/deny')
     @ApiOperation({
         summary: 'This endpoint denys a bug report by admin access',
         description: 'This endpoint denys a bug report by admin access',
