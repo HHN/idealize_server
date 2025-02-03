@@ -688,4 +688,31 @@ export class ProjectsService {
       );
     }
   }
+
+  async updateOwner(
+    projectId: string,
+    newOwnerId: string,
+    token: string
+  ): Promise<Project> {
+    const jwtUser = await this.authService.decodeJWT(token);
+
+    const currentProject = await this.projectModel.findOne({ _id: projectId, owner: jwtUser.userId }).exec();
+
+    if (currentProject !== null) {
+      return await this.projectModel.findOneAndUpdate(
+        { _id: projectId, owner: jwtUser.userId },
+        { owner: newOwnerId },
+        { new: true },
+      ).exec();
+    } else {
+      throw new HttpException(
+        {
+          status: HttpStatus.FORBIDDEN,
+          error: 'Forbidden Data',
+          message: 'Forbidden Data',
+        },
+        HttpStatus.FORBIDDEN,
+      );
+    }
+  }
 }

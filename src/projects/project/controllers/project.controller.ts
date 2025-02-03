@@ -95,6 +95,21 @@ export class ProjectsController {
     return this.projectsService.update(id, updateProjectDto, token);
   }
 
+  @Put(':projectId/update-owner/:newOwnerId')
+  @ApiOperation({
+    summary: 'This endpoint updates the owner of a project',
+    description: 'This endpoint updates the owner of a project',
+  })
+  @ApiHeader({ name: 'Authorization', required: false })
+  @UsePipes(new ValidationPipe({ transform: true }))
+  async updateOwner(
+    @Param('projectId') projectId: string,
+    @Param('newOwnerId') newOwnerId: string,
+    @Headers('Authorization') token: string
+  ): Promise<Project> {
+    return this.projectsService.updateOwner(projectId, newOwnerId, token);
+  }
+
   @Delete(':projectId/members/:teamMemberId')
   @ApiOperation({
     summary: 'This endpoint deletes a team member from a project',

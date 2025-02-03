@@ -13,6 +13,7 @@ import { ResendCodeDto } from '../dtos/resend-code.dto';
 import { DeleteUserDto } from '../dtos/delete-user.dto';
 import { ResetPasswordDto, ResetPasswordRequestDto } from '../dtos/reset-password.dto';
 import { UpdateUserByAdminDto } from '../dtos/update-user-by-admin.dto';
+import { Project, ProjectDocument } from 'src/projects/project/schemas/project.schema';
 
 @Injectable()
 export class UsersService {
@@ -20,6 +21,7 @@ export class UsersService {
     private readonly authService: AuthService,
     private mailerServive: MailerService,
     @InjectModel(User.name) private userModel: Model<UserDocument>,
+    @InjectModel(Project.name) private projectModel: Model<ProjectDocument>,
   ) { }
 
   async create(createUserDto: CreateUserDto): Promise<any> {
@@ -464,7 +466,7 @@ export class UsersService {
 
   async findAll(asAdmin: boolean = false, requestQuery = null): Promise<User[]> {
 
-    if(requestQuery === null) requestQuery = { sortField : 'createdAt', sort: 'asc' };
+    if (requestQuery === null) requestQuery = { sortField: 'createdAt', sort: 'asc' };
 
     const sortField = requestQuery.sortField ? requestQuery.sortField : 'createdAt';
     const sortOrder = requestQuery.sort === 'desc' ? -1 : 1;
@@ -647,6 +649,25 @@ export class UsersService {
       );
     }
 
+    const userProjects = await this.projectModel.find({
+      owner: jwtUser.userId,
+      teamMembers: { $exists: true, $ne: [] }
+    })
+      .populate({
+        path: 'teamMembers',
+        select: '_id, firstName lastName email userType',
+      })
+      .exec();
+
+    if (userProjects.length > 0) {
+      return {
+        message: 'soft_delete_projects_exists',
+        data: {
+          projects: userProjects
+        }
+      };
+    }
+
     // verification code
     const code = Math.floor(1000 + Math.random() * 9000).toString();
     // Expire code after 2 minutes
@@ -667,7 +688,7 @@ export class UsersService {
     }
 
     return {
-      message: 'OTP resent successfully',
+      message: 'otp_sent_success',
       user: {
         email: existingUser.email,
       }
@@ -718,7 +739,20 @@ export class UsersService {
       );
     }
 
-    return await this.userModel.findByIdAndDelete(existingUser._id).exec();
+    const result = await this.userModel.findByIdAndUpdate(existingUser._id, {
+      firstName: 'unknown',
+      lastName: 'unknown',
+      username: 'unknown',
+      email: 'unknown',
+      softDeleted: true,
+    }).exec();
+
+    return {
+      message: 'user_deleted_success',
+      user: {
+        email: result.email,
+      }
+    };
   }
 
   async sendResetPasswordRequest(resetPasswordRequestDto: ResetPasswordRequestDto) {

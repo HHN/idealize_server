@@ -7,10 +7,11 @@ import { AuthModule } from 'src/auth/auth.module';
 import { AuthService } from 'src/auth/auth.service';
 import { MailerModule } from 'src/mailer/mailer.module';
 import { AdminUsersController } from './user/controllers/admin-user.controller';
+import { ProjectSchema } from 'src/projects/project/schemas/project.schema';
 
 @Module({
     imports: [
-        MongooseModule.forFeature([{ name: 'User', schema: UserSchema }]),
+        MongooseModule.forFeature([{ name: 'User', schema: UserSchema }, { name: 'Project', schema: ProjectSchema }]),
         AuthModule,
         MailerModule,
     ],
