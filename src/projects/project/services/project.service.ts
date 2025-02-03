@@ -415,9 +415,9 @@ export class ProjectsService {
     if (currentProject !== null) {
 
       var membersRequestsShouldBeKept = [];
-      const existingTeamMembers: string[] = currentProject.teamMembers.map(item => item.toString());
-      const pendingTeamMembers: string[] = await this.joinRequestService.findPendingMembers(id);
-      const newTeamMembers: string[] = updateProjectDto.teamMembers;
+      const existingTeamMembers: string[] = currentProject.teamMembers.map(item => item.toString()) || [];
+      const pendingTeamMembers: string[] = await this.joinRequestService.findPendingMembers(id) || [];
+      const newTeamMembers: string[] = updateProjectDto.teamMembers || [];
 
       var updatedUsers: string[] = [];
 
