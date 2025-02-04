@@ -10,7 +10,7 @@ services:
     volumes:
       - ./uploads:/app/uploads
     depends_on:
-      - mongo-db
+      - db-mongo
     networks:
       - server-network
 
