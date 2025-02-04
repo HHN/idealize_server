@@ -9,6 +9,8 @@ services:
       dockerfile: Dockerfile
     volumes:
       - ./uploads:/app/uploads
+    ports:
+      - "3000:3000"
     depends_on:
       - db-mongo
     networks:
