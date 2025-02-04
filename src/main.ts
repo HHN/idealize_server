@@ -24,7 +24,7 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   /* Set global prefix */
-  app.setGlobalPrefix('api');
+  // app.setGlobalPrefix('api');
 
   /* Serve static files */
   // const uploadsPath = join(__dirname, '..', '..', 'uploads');
