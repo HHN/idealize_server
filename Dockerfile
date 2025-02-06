@@ -1,4 +1,4 @@
-FROM node:18 as builder
+FROM node:18
 
 WORKDIR /app
 
@@ -8,20 +8,11 @@ RUN npm install
 
 COPY . .
 
-RUN npm run build --prod
+COPY config/env/development.env development.env
+COPY config/env/production.env production.env
 
-FROM nginx:alpine
+RUN npm run build
 
-COPY --from=builder /app/dist/your-project-name /usr/share/nginx/html/
+EXPOSE 3000
 
-RUN echo 'server { \
-    listen 80; \
-    location / { \
-        root /usr/share/nginx/html; \
-        try_files $uri $uri/ /index.html; \
-    } \
-}' > /etc/nginx/conf.d/default.conf
-
-EXPOSE 80
-
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["npm", "run" ,"start:prod"]

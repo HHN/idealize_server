@@ -1,19 +1,33 @@
 version: '3.8'
 
 services:
-  admin-panel:
+  # Backend Service
+  backend:
+    container_name: backend
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: angular-admin
+    volumes:
+      - ./uploads:/app/uploads
     ports:
-      - "4200:80"
+      - "3000:3000"
+    depends_on:
+      - db-mongo
+    networks:
+      - server-network
+
+  # MongoDB Service
+  db-mongo:
+    container_name: db-mongo
+    image: mongo
+    volumes:
+      - mongo-data:/data/db
     restart: unless-stopped
     networks:
-      - admin-network
-    environment:
-      - API_URL=https://api.campusconnects.de
+      - server-network
+
+volumes:
+  mongo-data:
 
 networks:
-  admin-network:
-    driver: bridge
+  server-network:
