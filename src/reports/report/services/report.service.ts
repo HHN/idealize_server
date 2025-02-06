@@ -105,6 +105,7 @@ export class ReportService {
                 path: 'projectId',
                 model: 'Project'
             })
+            .sort({ createdAt: -1 })
             .exec();
     }
 

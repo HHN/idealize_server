@@ -70,3 +70,14 @@ export class UpdateProjectDto {
   @IsOptional()
   readonly teamMembers: string[];
 }
+
+export class changeOwnerDto {
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsString()
+  readonly projectId: string;
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsString()
+  readonly ownerId: string;
+}

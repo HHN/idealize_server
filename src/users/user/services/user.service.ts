@@ -630,7 +630,7 @@ export class UsersService {
     return user;
   }
 
-  async softDeleteUser(token: string) {
+  async softDeleteUserRequest(token: string) {
     const jwtUser = await this.authService.decodeJWT(token);
     const existingUser = await this.userModel.findByIdAndUpdate(jwtUser.userId, {
       softDeleted: false,
@@ -656,6 +656,7 @@ export class UsersService {
       .populate({
         path: 'teamMembers',
         select: '_id, firstName lastName email userType',
+        match: { status: true, softDeleted: false, isBlockedByAdmin: false, _id: { $ne: jwtUser.userId } }
       })
       .exec();
 
@@ -693,6 +694,53 @@ export class UsersService {
         email: existingUser.email,
       }
     };
+  }
+
+  async softAnonymizedDeleteUserRequest(token: string) {
+    const jwtUser = await this.authService.decodeJWT(token);
+    const existingUser = await this.userModel.findByIdAndUpdate(jwtUser.userId, {
+      softDeleted: false,
+      isBlockedByAdmin: false,
+      status: true
+    }).exec();
+
+    if (!existingUser) {
+      throw new HttpException(
+        {
+          status: HttpStatus.NOT_FOUND,
+          error: 'Incorrect Data',
+          message: 'User not found!',
+        },
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    // verification code
+    const code = Math.floor(1000 + Math.random() * 9000).toString();
+    // Expire code after 2 minutes
+    const codeExpire = new Date(Date.now() + 2 * 60 * 1000);
+
+    existingUser.code = this.authService.hashPassword(code);
+    existingUser.codeExpire = codeExpire;
+    await existingUser.save();
+
+    try {
+      await this.mailerServive.sendSoftDeleteConfirmationEmail(
+        existingUser.email,
+        `${existingUser.firstName} ${existingUser.lastName}`,
+        code,
+      );
+    } catch (er) {
+      console.log(er);
+    }
+
+    return {
+      message: 'otp_sent_success',
+      user: {
+        email: existingUser.email,
+      }
+    };
+
   }
 
   async verifySoftDeleteUser(deleteUserDto: DeleteUserDto, token: string) {
@@ -743,9 +791,19 @@ export class UsersService {
       firstName: 'unknown',
       lastName: 'unknown',
       username: 'unknown',
-      email: 'unknown',
+      email: this.authService.hashPassword(existingUser.email),
       softDeleted: true,
+      isBlockedByAdmin: false,
     }).exec();
+
+    try {
+      await this.mailerServive.sendSoftDeletedSuccessEmail(
+        existingUser.email,
+        `${existingUser.firstName} ${existingUser.lastName}`,
+      );
+    } catch (er) {
+      console.log(er);
+    }
 
     return {
       message: 'user_deleted_success',

@@ -2,7 +2,7 @@ import { forwardRef, HttpException, HttpStatus, Inject, Injectable } from '@nest
 import { InjectModel } from '@nestjs/mongoose';
 import { isValidObjectId, Model } from 'mongoose';
 import { Project, ProjectDocument } from '../schemas/project.schema';
-import { CreateProjectDto, UpdateProjectDto } from '../dtos/project.dto';
+import { changeOwnerDto, CreateProjectDto, UpdateProjectDto } from '../dtos/project.dto';
 import { AuthService } from 'src/auth/auth.service';
 import { ObjectId } from 'mongodb';
 import { ProjectLikeService } from 'src/likes/like/services/like-project.service';
@@ -690,18 +690,17 @@ export class ProjectsService {
   }
 
   async updateOwner(
-    projectId: string,
-    newOwnerId: string,
+    bodyData: changeOwnerDto,
     token: string
   ): Promise<Project> {
     const jwtUser = await this.authService.decodeJWT(token);
 
-    const currentProject = await this.projectModel.findOne({ _id: projectId, owner: jwtUser.userId }).exec();
+    const currentProject = await this.projectModel.findOne({ _id: bodyData.projectId, owner: jwtUser.userId }).exec();
 
     if (currentProject !== null) {
       return await this.projectModel.findOneAndUpdate(
-        { _id: projectId, owner: jwtUser.userId },
-        { owner: newOwnerId },
+        { _id: bodyData.projectId, owner: jwtUser.userId },
+        { owner: bodyData.ownerId },
         { new: true },
       ).exec();
     } else {

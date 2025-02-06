@@ -26,7 +26,7 @@ export class MailerService {
         const template = fs.readFileSync(filePath, 'utf8');
         const compiledTemplate = Handlebars.compile(template);
         return compiledTemplate(context);
-      }
+    }
 
     async sendVerificationEmail(to: string, name: string, code: string) {
         console.log(`-----> Mailgun debug [${name}]`, code);
@@ -42,6 +42,26 @@ export class MailerService {
                 to: [to],
                 subject: 'Verify your account',
                 text: `Your verification code is: ${code}`,
+                html,
+            });
+            this.logger.log(`Email sent to ${to}: ${response.message}`);
+        } catch (error) {
+            this.logger.error(`Failed to send email to ${to}: ${error.message}`);
+        }
+    }
+
+    async sendSoftDeletedSuccessEmail(to: string, name: string) {
+        const domain = configuration().mailgun.domain;
+        const from = configuration().mailgun.from;
+
+        const html = await this.compileTemplate('deleted', { name });
+
+        try {
+            const response = await this.mailgunClient.messages.create(domain, {
+                from,
+                to: [to],
+                subject: 'Account deleted successfully',
+                text: `Your account has been deleted successfully`,
                 html,
             });
             this.logger.log(`Email sent to ${to}: ${response.message}`);

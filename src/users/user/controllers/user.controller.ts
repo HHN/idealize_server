@@ -123,7 +123,20 @@ export class UsersController {
   @UseGuards(JwtAuthGuard)
   @UsePipes(new ValidationPipe({ transform: true }))
   async softDeleteRequest(@Headers('Authorization') token: string): Promise<any> {
-    return this.usersService.softDeleteUser(token);
+    return this.usersService.softDeleteUserRequest(token);
+  }
+
+  @Delete('soft-anonymized-delete-request')
+  @ApiOperation({
+    summary: 'This endpoint make a delete account request',
+    description: 'This endpoint make a delete account request',
+  })
+  @ApiHeader({ name: 'Authorization', required: false })
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(JwtAuthGuard)
+  @UsePipes(new ValidationPipe({ transform: true }))
+  async softAnonymizedDeleteRequest(@Headers('Authorization') token: string): Promise<any> {
+    return this.usersService.softAnonymizedDeleteUserRequest(token);
   }
 
   @Delete('verify-soft-delete')

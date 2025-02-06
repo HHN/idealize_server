@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Put, Delete, Param, Body, ValidationPipe, UsePipes, UseGuards, Query, Headers } from '@nestjs/common';
 import { ProjectsService } from '../services/project.service';
-import { CreateProjectDto, UpdateProjectDto } from '../dtos/project.dto';
+import { changeOwnerDto, CreateProjectDto, UpdateProjectDto } from '../dtos/project.dto';
 import { Project } from '../schemas/project.schema';
 import { JwtAuthGuard } from 'src/auth/jwt.guard';
 import { ApiBearerAuth, ApiBody, ApiHeader, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
@@ -75,8 +75,23 @@ export class ProjectsController {
   async findOne(
     @Param('id') id: string,
     @Headers('Authorization') token: string,
-    ): Promise<Project> {
+  ): Promise<Project> {
     return this.projectsService.findOne(id, token);
+  }
+
+  @Put('update-owner')
+  @ApiOperation({
+    summary: 'This endpoint updates the owner of a project',
+    description: 'This endpoint updates the owner of a project',
+  })
+  @ApiHeader({ name: 'Authorization', required: false })
+  @ApiBody({ type: changeOwnerDto })
+  @UsePipes(new ValidationPipe({ transform: true }))
+  async updateOwner(
+    @Body() bodyData: changeOwnerDto,
+    @Headers('Authorization') token: string
+  ): Promise<Project> {
+    return this.projectsService.updateOwner(bodyData, token);
   }
 
   @Put(':id')
@@ -93,21 +108,6 @@ export class ProjectsController {
     @Headers('Authorization') token: string
   ): Promise<Project> {
     return this.projectsService.update(id, updateProjectDto, token);
-  }
-
-  @Put(':projectId/update-owner/:newOwnerId')
-  @ApiOperation({
-    summary: 'This endpoint updates the owner of a project',
-    description: 'This endpoint updates the owner of a project',
-  })
-  @ApiHeader({ name: 'Authorization', required: false })
-  @UsePipes(new ValidationPipe({ transform: true }))
-  async updateOwner(
-    @Param('projectId') projectId: string,
-    @Param('newOwnerId') newOwnerId: string,
-    @Headers('Authorization') token: string
-  ): Promise<Project> {
-    return this.projectsService.updateOwner(projectId, newOwnerId, token);
   }
 
   @Delete(':projectId/members/:teamMemberId')
@@ -147,5 +147,4 @@ export class ProjectsController {
   async remove(@Param('id') id: string): Promise<Project> {
     return this.projectsService.remove(id);
   }
-
 }

@@ -60,6 +60,7 @@ export class BugReportService {
                     },
                 }
             })
+            .sort({ createdAt: -1 })
             .exec();
     }
 
