@@ -140,8 +140,8 @@ export class MailerService {
             const response = await this.mailgunClient.messages.create(domain, {
                 from,
                 to: [to],
-                subject: 'Welcome to CampusConnects',
-                text: `Welcome to CampusConnects ${name}`,
+                subject: 'Welcome to Idealize',
+                text: `Welcome to Idealize ${name}`,
                 html,
             });
             this.logger.log(`Email sent to ${to}: ${response.message}`);
