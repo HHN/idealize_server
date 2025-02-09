@@ -168,6 +168,11 @@ export class CommentsService {
     const skip = (page - 1) * limit;
     const commentsData = await this.commentModel.find()
       .populate({
+        path: 'projectId',
+        select: '_id title',
+        model: 'Project',
+      })
+      .populate({
         path: 'userId',
         select: '_id firstName lastName email status userType username profilePicture',
         model: 'User',
