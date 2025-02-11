@@ -52,17 +52,20 @@ export class ProjectLikeService {
   }
 
   async findAll(projectId: string = "", userId: string = ""): Promise<{ likes: LikeProject[], count: Number }> {
-    let query = this.likeModel.find();
 
-    if (projectId !== "") {
-      query = query.where('projectId').equals(projectId);
+    var query = {};
+
+    if(projectId !== "" && projectId !== null) {
+      query['projectId'] = projectId;
     }
 
-    if (userId !== "") {
-      query = query.where('userId').equals(userId);
+    if(userId !== "" && userId !== null) {
+      query['userId'] = userId;
     }
 
-    let likes = await query
+    let likeModel = this.likeModel.find(query);
+
+    let likes = await likeModel
       .select('_id userId projectId createdAt updatedAt')
       .populate({
         path: 'userId',

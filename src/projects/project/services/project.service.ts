@@ -180,7 +180,7 @@ export class ProjectsService {
     let projectsWithLikes = [];
 
     for (const project of projects) {
-      const isLiked = likedProjectIds.likes.findIndex(item => item.projectId == project._id) !== -1;
+      const isLiked = likedProjectIds.likes.findIndex(item => item.projectId.toString() == project._id.toString()) !== -1;
       const comments = await this.commentsService.findAllOfCommentsCount(project._id.toString());
       const likes = await this.projectLikeService.likesCount(project._id.toString());
       const isArchived = await this.archiveModel.findOne({ projectId: project._id.toString() });
@@ -297,9 +297,9 @@ export class ProjectsService {
       .lean();
 
     let projectsWithLikes = [];
-
+    
     for (const project of projects) {
-      const isLiked = likedProjectIds.likes.findIndex(item => item.projectId == project._id) !== -1;
+      const isLiked = likedProjectIds.likes.findIndex(item => item.projectId.toString() == project._id.toString()) !== -1;
       const comments = await this.commentsService.findAllOfCommentsCount(project._id.toString());
       const likes = await this.projectLikeService.likesCount(project._id.toString());
       const isArchived = await this.archiveModel.findOne({ userId: jwtUser.userId, projectId: project._id.toString() });

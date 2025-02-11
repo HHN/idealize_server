@@ -142,7 +142,7 @@ export class ArchiveService {
         let projectsWithLikes = [];
 
         for (const project of projects) {
-            const isLiked = likedProjectIds.likes.findIndex(item => item.projectId == project.projectId._id) !== -1;
+            const isLiked = likedProjectIds.likes.findIndex(item => item.projectId.toString() == project.projectId._id.toString()) !== -1;
             const comments = await this.commentsService.findAllOfCommentsCount(project.projectId._id.toString());
             const likes = await this.projectLikeService.likesCount(project.projectId._id.toString());
             const isArchived = await this.isArchivedOrNot(jwtUser.userId, project.projectId._id.toString());
