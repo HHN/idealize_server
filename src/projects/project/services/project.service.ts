@@ -13,6 +13,7 @@ import { CreateJoinRequestDto } from 'src/join-requests/join-request/dtos/create
 import { ReportService } from 'src/reports/report/services/report.service';
 import { UserDocument } from 'src/users/user/schemas/user.schema';
 import { ArchiveDocument } from 'src/archives/archive/schemas/archive.schema';
+import { TagDocument } from 'src/tags/tag/schemas/tag.schema';
 
 @Injectable()
 export class ProjectsService {
@@ -21,6 +22,7 @@ export class ProjectsService {
     @InjectModel('Project') private readonly projectModel: Model<ProjectDocument>,
     @InjectModel('User') private readonly userModel: Model<UserDocument>,
     @InjectModel('Archive') private readonly archiveModel: Model<ArchiveDocument>,
+    @InjectModel('Tag') private readonly tagModel: Model<TagDocument>,
     private readonly authService: AuthService,
     private readonly projectLikeService: ProjectLikeService,
     private readonly commentsService: CommentsService,
@@ -102,7 +104,7 @@ export class ProjectsService {
     return createdProject;
   }
 
-  async findAllOfMyProjects(page: number = 1, limit: number = 10, isDraft: boolean, token: string, filterByTag?: string): Promise<{ projects: Project[]; total: number }> {
+  async findAllOfMyProjects(page: number = 1, limit: number = 10, isDraft: boolean, token: string, filterByTag?: string, joined: boolean = false,): Promise<{ projects: Project[]; total: number }> {
     const jwtUser = await this.authService.decodeJWT(token);
 
     const skip = (page - 1) * limit;
@@ -216,6 +218,7 @@ export class ProjectsService {
     sort: string = '_id',
     filter: string = 'all',
     filterByTag: string = '',
+    joined: boolean = false,
   ): Promise<{ projects: Project[]; total: number }> {
 
     const jwtUser = await this.authService.decodeJWT(token);
@@ -223,16 +226,31 @@ export class ProjectsService {
     const favoriteProjectIds = await this.archiveModel.find({ userId: jwtUser.userId });
 
     const skip = (page - 1) * limit;
-    const query = {};
+    let query = {};
 
-    if (owner) {
+    if (owner && !joined) {
       query['owner'] = owner;
+    } else if (owner && joined) {
+      query = {
+        $or: [
+          {
+            'owner': jwtUser.userId,
+          },
+          {
+            'teamMembers': { $in: [jwtUser.userId] },
+          },
+        ]
+      };
+    } else if (!owner && joined) {
+      query = {
+        'teamMembers': { $in: [jwtUser.userId] },
+      };
     }
 
     query['isDraft'] = false;
 
-    if (search) {
-      query['title'] = { $regex: search, $options: 'i' };
+    if (!!filterByTag) {
+      query['tags'] = { $in: [filterByTag] };
     }
 
     if (filter === 'my-projects') {
@@ -240,38 +258,22 @@ export class ProjectsService {
     }
 
     if (filter === 'favorite-projects') {
-      query['_id'] = { $in: favoriteProjectIds.map(item => item.projectId) };
+      query['_id'] = { $in: [...favoriteProjectIds.map(item => item.projectId)] };
     }
 
-    if (!!filterByTag) {
-      query['tags'] = { $in: [filterByTag] };
+    // *** this condition should be stay last one ***
+    let query2 = {};
+    if (search) {
+      query['title'] = { $regex: search, $options: 'i' };
+
+      const filteredTags = await this.tagModel.find({ name: { $regex: search, $options: 'i' } });
+
+      if (filteredTags.length > 0) {
+        query2['tags'] = { $in: [...filteredTags.map(item => item._id)] };
+      }
     }
 
-
-    const projectsQuery = this.projectModel.find(query)
-      // .populate({
-      //   path: 'owner',
-      //   populate: {
-      //     path: 'profilePicture',
-      //     model: 'Upload',
-      //     populate: {
-      //       path: 'user',
-      //       model: 'User'
-      //     }
-      //   },
-      // })
-      // .populate({
-      //   path: 'owner',
-      //   populate: {
-      //     path: 'interestedTags',
-      //   },
-      // })
-      // .populate({
-      //   path: 'owner',
-      //   populate: {
-      //     path: 'studyPrograms',
-      //   },
-      // })
+    const projectsQuery = this.projectModel.find({ $or: [{ ...query }, { ...query2 }] })
       .populate({
         path: 'owner',
         select: '_id, firstName lastName email userType',
@@ -283,13 +285,11 @@ export class ProjectsService {
       .populate('courses')
       .populate('tags');
 
-    // .populate('thumbnail')
-    // .populate({
-    //   path: 'attachments',
-    //   populate: { path: 'user', select: '_id firstName lastName email userType' }
-    // });
 
-    const total = await this.projectModel.countDocuments(query);
+
+    const total = await this.projectModel.countDocuments(
+      { $or: [{ ...query }, { ...query2 }] }
+    );
     let projects = await projectsQuery
       .skip(skip)
       .limit(limit)
@@ -297,7 +297,7 @@ export class ProjectsService {
       .lean();
 
     let projectsWithLikes = [];
-    
+
     for (const project of projects) {
       const isLiked = likedProjectIds.likes.findIndex(item => item.projectId.toString() == project._id.toString()) !== -1;
       const comments = await this.commentsService.findAllOfCommentsCount(project._id.toString());

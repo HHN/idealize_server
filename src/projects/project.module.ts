@@ -13,6 +13,7 @@ import { AdminProjectsController } from './project/controllers/admin-project.con
 import { ReportModule } from 'src/reports/report.module';
 import { UserSchema } from 'src/users/user/schemas/user.schema';
 import { ArchiveSchema } from 'src/archives/archive/schemas/archive.schema';
+import { TagSchema } from 'src/tags/tag/schemas/tag.schema';
 
 @Module({
     imports: [
@@ -21,6 +22,7 @@ import { ArchiveSchema } from 'src/archives/archive/schemas/archive.schema';
                 { name: 'Project', schema: ProjectSchema },
                 { name: 'User', schema: UserSchema },
                 { name: 'Archive', schema: ArchiveSchema },
+                { name: 'Tag', schema: TagSchema },
             ]),
         AuthModule,
         NotificationModule,

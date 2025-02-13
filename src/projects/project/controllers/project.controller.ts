@@ -44,8 +44,19 @@ export class ProjectsController {
     @Query('sort') sort?: string,
     @Query('filter') filter?: string,
     @Query('filterByTag') filterByTag?: string,
+    @Query('joined') joined?: boolean,
   ): Promise<{ projects: Project[]; total: number }> {
-    return this.projectsService.findAll(page, limit, token, owner, search, sort, filter, filterByTag);
+    return this.projectsService.findAll(
+      page,
+      limit, 
+      token, 
+      owner, 
+      search, 
+      sort, 
+      filter, 
+      filterByTag, 
+      joined || false
+    );
   }
 
   @Get('my-projects')
@@ -62,8 +73,15 @@ export class ProjectsController {
     @Query('isDraft') isDraft: boolean,
     @Headers('Authorization') token: string,
     @Query('filterByTag') filterByTag?: string,
+    @Query('joined') joined?: boolean,
   ): Promise<{ projects: Project[]; total: number }> {
-    return this.projectsService.findAllOfMyProjects(page, limit, isDraft, token, filterByTag);
+    return this.projectsService.findAllOfMyProjects(page, 
+      limit, 
+      isDraft, 
+      token, 
+      filterByTag,
+      joined || false
+    );
   }
 
   @Get(':id')
