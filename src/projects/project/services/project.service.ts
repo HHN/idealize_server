@@ -226,26 +226,14 @@ export class ProjectsService {
     const favoriteProjectIds = await this.archiveModel.find({ userId: jwtUser.userId });
 
     const skip = (page - 1) * limit;
-    let query = {};
+    const query = {};
 
-    if (owner && !joined) {
+
+    if (owner) {
       query['owner'] = owner;
-    } else if (owner && joined) {
-      query = {
-        $or: [
-          {
-            'owner': jwtUser.userId,
-          },
-          {
-            'teamMembers': { $in: [jwtUser.userId] },
-          },
-        ]
-      };
-    } else if (!owner && joined) {
-      query = {
-        'teamMembers': { $in: [jwtUser.userId] },
-      };
     }
+
+    const targetUserId = !!owner ? owner : jwtUser.userId;
 
     query['isDraft'] = false;
 
@@ -262,18 +250,22 @@ export class ProjectsService {
     }
 
     // *** this condition should be stay last one ***
-    let query2 = {};
+    let filteredTags = null;
     if (search) {
       query['title'] = { $regex: search, $options: 'i' };
-
-      const filteredTags = await this.tagModel.find({ name: { $regex: search, $options: 'i' } });
-
-      if (filteredTags.length > 0) {
-        query2['tags'] = { $in: [...filteredTags.map(item => item._id)] };
-      }
+      filteredTags = await this.tagModel.find({ name: { $regex: search, $options: 'i' } });
     }
 
-    const projectsQuery = this.projectModel.find({ $or: [{ ...query }, { ...query2 }] })
+    let ors = [query];
+    if (joined) {
+      ors.push({ 'teamMembers': { $in: [targetUserId] } })
+    }
+    if (!!filteredTags) {
+      ors.push({ 'tags': { $in: [...filteredTags.map(item => item._id)] } });
+    }
+
+    const projectsQuery = this.projectModel.find()
+      .or(ors)
       .populate({
         path: 'owner',
         select: '_id, firstName lastName email userType',
@@ -285,11 +277,7 @@ export class ProjectsService {
       .populate('courses')
       .populate('tags');
 
-
-
-    const total = await this.projectModel.countDocuments(
-      { $or: [{ ...query }, { ...query2 }] }
-    );
+    const total = await this.projectModel.countDocuments(projectsQuery);
     let projects = await projectsQuery
       .skip(skip)
       .limit(limit)
