@@ -226,30 +226,14 @@ export class ProjectsService {
     const favoriteProjectIds = await this.archiveModel.find({ userId: jwtUser.userId });
 
     const skip = (page - 1) * limit;
-    let query = {};
+    const query = {};
 
-    if (owner && joined) {
-      query = {
-        $or: [
-          {
-            'owner': owner,
-          },
-          {
-            'teamMembers': { $in: [owner] },
-          },
-        ]
-      };
-    } else if (owner && !joined) {
+
+    if (owner) {
       query['owner'] = owner;
-    } else if (!owner && joined) {
-      query['teamMembers'] = { $in: [jwtUser.userId] };
     }
 
-    //let targetUserId = jwtUser.userId;
-    // if (owner) {
-    //   query['owner'] = owner;
-    //   targetUserId = owner;
-    // }
+    const targetUserId = !!owner ? owner : jwtUser.userId;
 
     query['isDraft'] = false;
 
@@ -273,7 +257,9 @@ export class ProjectsService {
     }
 
     let ors = [query];
-
+    if (joined) {
+      ors.push({ 'teamMembers': { $in: [targetUserId] } })
+    }
     if (!!filteredTags) {
       ors.push({ 'tags': { $in: [...filteredTags.map(item => item._id)] } });
     }
