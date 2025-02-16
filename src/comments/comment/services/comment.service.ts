@@ -228,18 +228,34 @@ export class CommentsService {
     return this.commentModel.findById(id).exec();
   }
 
+
   async delete(id: string, token: string): Promise<boolean> {
     const jwtUser = await this.authService.decodeJWT(token);
-    let res = await this.commentModel.findOneAndDelete({ _id: id, userId: jwtUser.userId });
-    if (!!res) {
-      return true;
+
+    const comment = await this.commentModel.findOne({ _id: id, userId: jwtUser.userId });
+    if (!comment) {
+      return false;
     }
 
-    return false;
+    await this.deleteReplies(id);
+
+    await this.commentModel.deleteOne({ _id: id });
+
+    return true;
+  }
+
+  private async deleteReplies(commentId: string): Promise<void> {
+    const replies = await this.commentModel.find({ parentCommentId: commentId });
+
+    for (const reply of replies) {
+      await this.deleteReplies(reply._id.toString());
+      await this.commentModel.deleteOne({ _id: reply._id });
+    }
   }
 
   async deleteByOwner(commentId: string, projectId: string): Promise<boolean> {
     let res = await this.commentModel.findOneAndDelete({ _id: commentId, projectId });
+    await this.commentModel.findOneAndDelete({ parentCommentId: commentId });
     if (!!res) {
       return true;
     }
@@ -249,6 +265,7 @@ export class CommentsService {
 
   async deleteByAdmin(id: string): Promise<boolean> {
     let res = await this.commentModel.findOneAndDelete({ _id: id });
+    await this.commentModel.findOneAndDelete({ parentCommentId: id });
     if (!!res) {
       return true;
     }
