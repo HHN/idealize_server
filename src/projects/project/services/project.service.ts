@@ -228,12 +228,11 @@ export class ProjectsService {
     const skip = (page - 1) * limit;
     const query = {};
 
-
+    let targetUserId = jwtUser.userId;
     if (owner) {
       query['owner'] = owner;
+      targetUserId = owner;
     }
-
-    const targetUserId = !!owner ? owner : jwtUser.userId;
 
     query['isDraft'] = false;
 
