@@ -232,16 +232,25 @@ export class CommentsService {
   async delete(id: string, token: string): Promise<boolean> {
     const jwtUser = await this.authService.decodeJWT(token);
 
-    const comment = await this.commentModel.findOne({ _id: id, userId: jwtUser.userId });
+    const comment: any = await this.commentModel.findOne({ _id: id }).populate({
+      path: 'projectId',
+      select: '_id title owner',
+      model: 'Project',
+    }).lean();
+
     if (!comment) {
       return false;
     }
 
-    await this.deleteReplies(id);
+    const projectOwner = comment.projectId.owner.toString();
 
-    await this.commentModel.deleteOne({ _id: id });
-
-    return true;
+    if (comment.userId.toString() === jwtUser.userId.toString() || projectOwner === jwtUser.userId.toString()) {
+      await this.deleteReplies(id);
+      await this.commentModel.deleteOne({ _id: id });
+      return true;
+    } else {
+      return false;
+    }
   }
 
   private async deleteReplies(commentId: string): Promise<void> {

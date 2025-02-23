@@ -686,9 +686,13 @@ export class ProjectsService {
     const currentProject = await this.projectModel.findOne({ _id: bodyData.projectId, owner: jwtUser.userId }).exec();
 
     if (currentProject !== null) {
+
+      // exlude new owner from the project team members
+      const newTeamMembers = currentProject.teamMembers.filter(item => item.toString() !== bodyData.ownerId);
+
       return await this.projectModel.findOneAndUpdate(
         { _id: bodyData.projectId, owner: jwtUser.userId },
-        { owner: bodyData.ownerId },
+        { owner: bodyData.ownerId, teamMembers: newTeamMembers },
         { new: true },
       ).exec();
     } else {

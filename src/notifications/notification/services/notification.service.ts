@@ -210,7 +210,8 @@ export class NotificationService {
             {
                 $and: [
                     { receiver: jwtUser.userId },
-                    { isRead: false }
+                    { isRead: false },
+                    { softDeleted: false },
                 ]
             },
         ).countDocuments();
