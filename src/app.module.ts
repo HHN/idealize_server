@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule, RequestMethod } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { configuration } from 'config/configuration';
@@ -22,6 +22,7 @@ import { AuthService } from './auth/auth.service';
 import { SeedingModule } from './seeding/seeding.module';
 import { ArchiveModule } from './archives/archive.module';
 import { BugReportModule } from './bug-report/bug-report.module';
+import { UserStatusMiddleware } from './shared/middlewares/user_status_mw';
 
 @Module({
   imports: [
@@ -60,4 +61,22 @@ import { BugReportModule } from './bug-report/bug-report.module';
     AuthService,
   ],
 })
-export class AppModule { }
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(UserStatusMiddleware)
+      .exclude(
+        { path: 'admin/(.*)', method: RequestMethod.ALL },
+        { path: 'uploads/resource/(.*)', method: RequestMethod.ALL },
+        { path: 'users/new', method: RequestMethod.POST },
+        { path: 'users/login', method: RequestMethod.POST },
+        { path: 'users/verify', method: RequestMethod.POST },
+        { path: 'users/resend-code', method: RequestMethod.POST },
+        { path: 'users/refresh-token', method: RequestMethod.POST },
+        { path: 'users/reset-password', method: RequestMethod.POST },
+        { path: 'users/reset-password-verify', method: RequestMethod.POST },
+        { path: 'tags', method: RequestMethod.GET },
+        { path: 'tags/(.*)', method: RequestMethod.GET }
+      ).forRoutes('*');
+  }
+}

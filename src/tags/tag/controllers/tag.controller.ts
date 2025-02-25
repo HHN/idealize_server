@@ -3,7 +3,7 @@ import { TagService } from '../services/tag.service';
 import { CreateTagDto, EditTagDto } from '../dtos/tag.dto';
 import { Tag } from '../schemas/tag.schema';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { JwtAdminAuthGuard, JwtAdminOrUserAuthGuard, JwtAuthGuard } from 'src/auth/jwt.guard';
+import { JwtAuthGuard } from 'src/auth/jwt.guard';
 
 @Controller('tags')
 export class TagController {
