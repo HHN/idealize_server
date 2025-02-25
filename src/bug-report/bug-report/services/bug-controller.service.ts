@@ -4,12 +4,16 @@ import { Model } from 'mongoose';
 import { AuthService } from 'src/auth/auth.service';
 import { BugReport, BugReportDocument } from '../schemas/bug-report.schema';
 import { CreateBugReportDto } from '../dtos/create-bug-report.dto';
+import { MailerService } from 'src/mailer/mailer.service';
+import { User, UserDocument } from 'src/users/user/schemas/user.schema';
 
 @Injectable()
 export class BugReportService {
     constructor(
         @InjectModel(BugReport.name) private bugReportModel: Model<BugReportDocument>,
+        @InjectModel(User.name) private userModel: Model<UserDocument>,
         private authService: AuthService,
+        private mailerServive: MailerService,
     ) { }
 
     async new(createReportDto: CreateBugReportDto, token: string): Promise<BugReport> {
@@ -30,6 +34,19 @@ export class BugReportService {
                     HttpStatus.NOT_ACCEPTABLE,
                 );
             }
+            
+            try {
+                const userData = await this.userModel
+                  .findOne({ _id: jwtUser.userId })
+                  .exec();
+                await this.mailerServive.sendBugReportUnderReview(
+                  userData.email,
+                  `${userData.firstName} ${userData.lastName}`,
+                  createReportDto.content,
+                );
+              } catch (er) {
+                console.log(er);
+              }
 
             return await this.bugReportModel.create(createReportDto);
         } else {

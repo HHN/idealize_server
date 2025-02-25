@@ -28,6 +28,26 @@ export class MailerService {
         return compiledTemplate(context);
     }
 
+    async sendBugReportUnderReview(to: string, name: string, content: string) {
+        const domain = configuration().mailgun.domain;
+        const from = configuration().mailgun.from;
+
+        const html = await this.compileTemplate('bugreport', { name, content });
+
+        try {
+            const response = await this.mailgunClient.messages.create(domain, {
+                from,
+                to: [to],
+                subject: 'Bug report under review',
+                text: 'Your bug report is under review',
+                html,
+            });
+            this.logger.log(`Email sent to ${to}: ${response.message}`);
+        } catch (error) {
+            this.logger.error(`Failed to send email to ${to}: ${error.message}`);
+        }
+    }
+
     async sendVerificationEmail(to: string, name: string, code: string) {
         console.log(`-----> Mailgun debug [${name}]`, code);
 
