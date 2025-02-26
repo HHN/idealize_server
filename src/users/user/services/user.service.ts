@@ -632,7 +632,8 @@ export class UsersService {
 
   async softDeleteUserRequest(token: string) {
     const jwtUser = await this.authService.decodeJWT(token);
-    const existingUser = await this.userModel.findByIdAndUpdate(jwtUser.userId, {
+    const existingUser = await this.userModel.findOne({
+      _id: jwtUser.userId,
       softDeleted: false,
       isBlockedByAdmin: false,
       status: true
@@ -698,7 +699,8 @@ export class UsersService {
 
   async softAnonymizedDeleteUserRequest(token: string) {
     const jwtUser = await this.authService.decodeJWT(token);
-    const existingUser = await this.userModel.findByIdAndUpdate(jwtUser.userId, {
+    const existingUser = await this.userModel.findOne({
+      _id: jwtUser.userId,
       softDeleted: false,
       isBlockedByAdmin: false,
       status: true
@@ -745,7 +747,8 @@ export class UsersService {
 
   async softKeepDataDeleteUserRequest(token: string) {
     const jwtUser = await this.authService.decodeJWT(token);
-    const existingUser = await this.userModel.findByIdAndUpdate(jwtUser.userId, {
+    const existingUser = await this.userModel.findOne({
+      _id: jwtUser.userId,
       softDeleted: false,
       isBlockedByAdmin: false,
       status: true
@@ -793,7 +796,8 @@ export class UsersService {
   async verifySoftDeleteUser(deleteUserDto: DeleteUserDto, token: string, keepData: boolean = false) {
     const jwtUser = await this.authService.decodeJWT(token);
 
-    const existingUser = await this.userModel.findByIdAndUpdate(jwtUser.userId, {
+    const existingUser = await this.userModel.findOne({
+      _id: jwtUser.userId,
       softDeleted: false,
       isBlockedByAdmin: false,
       status: true
@@ -841,6 +845,7 @@ export class UsersService {
       email: this.authService.hashPassword(existingUser.email),
       softDeleted: true,
       isBlockedByAdmin: false,
+      status: false,
     };
 
     if (keepData) {
@@ -851,6 +856,7 @@ export class UsersService {
         email: this.authService.hashPassword(existingUser.email),
         softDeleted: true,
         isBlockedByAdmin: false,
+        status: false,
       };
     }
 
