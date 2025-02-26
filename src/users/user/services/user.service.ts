@@ -743,7 +743,54 @@ export class UsersService {
 
   }
 
-  async verifySoftDeleteUser(deleteUserDto: DeleteUserDto, token: string) {
+  async softKeepDataDeleteUserRequest(token: string) {
+    const jwtUser = await this.authService.decodeJWT(token);
+    const existingUser = await this.userModel.findByIdAndUpdate(jwtUser.userId, {
+      softDeleted: false,
+      isBlockedByAdmin: false,
+      status: true
+    }).exec();
+
+    if (!existingUser) {
+      throw new HttpException(
+        {
+          status: HttpStatus.NOT_FOUND,
+          error: 'Incorrect Data',
+          message: 'User not found!',
+        },
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    // verification code
+    const code = Math.floor(1000 + Math.random() * 9000).toString();
+    // Expire code after 2 minutes
+    const codeExpire = new Date(Date.now() + 2 * 60 * 1000);
+
+    existingUser.code = this.authService.hashPassword(code);
+    existingUser.codeExpire = codeExpire;
+    await existingUser.save();
+
+    try {
+      await this.mailerServive.sendSoftDeleteConfirmationEmail(
+        existingUser.email,
+        `${existingUser.firstName} ${existingUser.lastName}`,
+        code,
+      );
+    } catch (er) {
+      console.log(er);
+    }
+
+    return {
+      message: 'otp_sent_success',
+      user: {
+        email: existingUser.email,
+      }
+    };
+
+  }
+
+  async verifySoftDeleteUser(deleteUserDto: DeleteUserDto, token: string, keepData: boolean = false) {
     const jwtUser = await this.authService.decodeJWT(token);
 
     const existingUser = await this.userModel.findByIdAndUpdate(jwtUser.userId, {
@@ -787,14 +834,27 @@ export class UsersService {
       );
     }
 
-    const result = await this.userModel.findByIdAndUpdate(existingUser._id, {
+    var userDbData = {
       firstName: 'unknown',
       lastName: 'unknown',
       username: 'unknown',
       email: this.authService.hashPassword(existingUser.email),
       softDeleted: true,
       isBlockedByAdmin: false,
-    }).exec();
+    };
+
+    if (keepData) {
+      userDbData = {
+        firstName: existingUser.firstName,
+        lastName: existingUser.lastName,
+        username: existingUser.username,
+        email: this.authService.hashPassword(existingUser.email),
+        softDeleted: true,
+        isBlockedByAdmin: false,
+      };
+    }
+
+    const result = await this.userModel.findByIdAndUpdate(existingUser._id, userDbData).exec();
 
     try {
       await this.mailerServive.sendSoftDeletedSuccessEmail(

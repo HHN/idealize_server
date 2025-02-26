@@ -139,6 +139,19 @@ export class UsersController {
     return this.usersService.softAnonymizedDeleteUserRequest(token);
   }
 
+  @Delete('soft-keepdata-delete-request')
+  @ApiOperation({
+    summary: 'This endpoint make a delete account request',
+    description: 'This endpoint make a delete account request',
+  })
+  @ApiHeader({ name: 'Authorization', required: false })
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(JwtAuthGuard)
+  @UsePipes(new ValidationPipe({ transform: true }))
+  async softKeepDataDeleteRequest(@Headers('Authorization') token: string): Promise<any> {
+    return this.usersService.softKeepDataDeleteUserRequest(token);
+  }
+
   @Delete('verify-soft-delete')
   @ApiOperation({
     summary: 'This endpoint verify to delete account',
@@ -151,9 +164,10 @@ export class UsersController {
   @UsePipes(new ValidationPipe({ transform: true }))
   async verifySoftDeleteRequest(
     @Body() deleteUserDto: DeleteUserDto,
+    @Param('keep_data') keep_data: boolean,
     @Headers('Authorization') token: string
   ): Promise<any> {
-    return this.usersService.verifySoftDeleteUser(deleteUserDto, token);
+    return this.usersService.verifySoftDeleteUser(deleteUserDto, token, keep_data || false);
   }
 
   @Post('reset-password')
