@@ -25,6 +25,17 @@ export class UsersService {
   ) { }
 
   async create(createUserDto: CreateUserDto): Promise<any> {
+    if (!createUserDto.email.endsWith('@hs-heilbronn.de') && !createUserDto.email.endsWith('@stud.hs-heilbronn.de')) {
+      throw new HttpException(
+        {
+          status: HttpStatus.BAD_REQUEST,
+          error: 'Invalid email',
+          message: 'The email provided is not valid, please use your email from hs-heilbronn.de or stud.hs-heilbronn.de',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
     // first check if the user already exists
     const existingUser = await this.userModel.findOne({ email: createUserDto.email.toLowerCase() }).exec();
 
