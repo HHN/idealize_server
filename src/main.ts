@@ -50,11 +50,11 @@ async function bootstrap() {
 
 
   /* Enable rate limiting */
-  app.use(rateLimit({
-    windowMs: 5 * 60000, // 5 minutes
-    standardHeaders: true,
-    max: 1000,
-  }));
+  // app.use(rateLimit({
+  //   windowMs: 5 * 60000, // 5 minutes
+  //   standardHeaders: true,
+  //   max: 1000,
+  // }));
 
 
   /* Enable CORS */
