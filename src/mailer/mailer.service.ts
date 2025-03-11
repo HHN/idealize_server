@@ -91,6 +91,8 @@ export class MailerService {
     }
 
     async sendSoftDeleteConfirmationEmail(to: string, name: string, code: string) {
+        console.log(`-----> Mailgun debug [${name}]`, code);
+
         const domain = configuration().mailgun.domain;
         const from = configuration().mailgun.from;
 
@@ -111,6 +113,8 @@ export class MailerService {
     }
 
     async sendResetPasswordCodeEmail(to: string, name: string, code: string) {
+        console.log(`-----> Mailgun debug [${name}]`, code);
+
         const domain = configuration().mailgun.domain;
         const from = configuration().mailgun.from;
 
@@ -131,6 +135,7 @@ export class MailerService {
     }
 
     async passwordResetSuccessfullyEmail(to: string, name: string) {
+        
         const domain = configuration().mailgun.domain;
         const from = configuration().mailgun.from;
 

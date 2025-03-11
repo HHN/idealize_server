@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UsePipes, ValidationPipe, Headers, Put, UseGuards, Get, Param, Delete, Patch } from '@nestjs/common';
+import { Controller, Post, Body, UsePipes, ValidationPipe, Headers, Put, UseGuards, Get, Param, Delete, Patch, Req } from '@nestjs/common';
 import { UsersService } from '../services/user.service';
 import { CreateUserDto } from '../dtos/create-user.dto';
 import { User } from '../schemas/user.schema';
@@ -164,10 +164,10 @@ export class UsersController {
   @UsePipes(new ValidationPipe({ transform: true }))
   async verifySoftDeleteRequest(
     @Body() deleteUserDto: DeleteUserDto,
-    @Param('keep_data') keep_data: boolean,
-    @Headers('Authorization') token: string
+    @Headers('Authorization') token: string,
+    @Req() request: any
   ): Promise<any> {
-    return this.usersService.verifySoftDeleteUser(deleteUserDto, token, keep_data || false);
+    return this.usersService.verifySoftDeleteUser(deleteUserDto, token, request);
   }
 
   @Post('reset-password')

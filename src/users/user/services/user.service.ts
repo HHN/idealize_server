@@ -804,7 +804,9 @@ export class UsersService {
 
   }
 
-  async verifySoftDeleteUser(deleteUserDto: DeleteUserDto, token: string, keepData: boolean = false) {
+  async verifySoftDeleteUser(deleteUserDto: DeleteUserDto, token: string, request: any) {
+    const keepData: boolean = request.query.keep_data || false;
+
     const jwtUser = await this.authService.decodeJWT(token);
 
     const existingUser = await this.userModel.findOne({
