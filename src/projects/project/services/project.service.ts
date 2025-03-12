@@ -258,7 +258,7 @@ export class ProjectsService {
 
     let ors = [query];
     if (joined) {
-      ors.push({ 'teamMembers': { $in: [targetUserId] } })
+      ors.push({ 'teamMembers': { $in: [targetUserId] }, 'isDraft': false })
     }
     if (!!filteredTags) {
       ors.push({ 'tags': { $in: [...filteredTags.map(item => item._id)] } });
