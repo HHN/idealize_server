@@ -39,7 +39,8 @@ export class UploadsController {
               'application/vnd.openxmlformats-officedocument.presentationml.presentation',  // .pptx
               'video/mp4',  // MP4 videos
             ];
-      
+            
+            console.log('file.mimetype: ', file.mimetype);
             if (allowedMimeTypes.includes(file.mimetype)) {
               cb(null, true);  // Accept the file
             } else {
@@ -47,7 +48,7 @@ export class UploadsController {
             }
           },
         limits: {
-            fileSize: 5 * 1024 * 1024,  // 5MB file size limit
+            fileSize: 10 * 1024 * 1024,  // 5MB file size limit
         },
     }))
     @ApiOperation({
