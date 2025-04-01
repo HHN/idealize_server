@@ -23,6 +23,7 @@ import { SeedingModule } from './seeding/seeding.module';
 import { ArchiveModule } from './archives/archive.module';
 import { BugReportModule } from './bug-report/bug-report.module';
 import { UserStatusMiddleware } from './shared/middlewares/user_status_mw';
+import { RequestIosAccessSchema } from './shared/schemas/request_ios_access.schema';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { UserStatusMiddleware } from './shared/middlewares/user_status_mw';
         useNewUrlParser: true,
       })
     }),
+    MongooseModule.forFeature([{ name: 'RequestIosAccess', schema: RequestIosAccessSchema }]),
     UsersModule,
     ProjectsModule,
     TagModule,
@@ -76,7 +78,9 @@ export class AppModule implements NestModule {
         { path: 'users/reset-password', method: RequestMethod.POST },
         { path: 'users/reset-password-verify', method: RequestMethod.POST },
         { path: 'tags', method: RequestMethod.GET },
-        { path: 'tags/(.*)', method: RequestMethod.GET }
+        { path: 'tags/(.*)', method: RequestMethod.GET },
+        { path: 'request-test-account', method: RequestMethod.POST },
+        { path: 'hello-world', method: RequestMethod.GET }
       ).forRoutes('*');
   }
 }
