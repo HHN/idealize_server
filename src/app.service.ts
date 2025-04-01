@@ -65,7 +65,7 @@ export class AppService {
 
       const response = await axios.post(this.VERIFICATION_URL, params);
 
-      return response.data.success && response.data.score >= 0.5; // For v2 checkbox, you can just check 'success'
+      return response.data.success;
     } catch (error) {
       console.error('reCAPTCHA verification failed:', error);
       return false;
