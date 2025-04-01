@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Post, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
 import { AppService } from './app.service';
-import { ApiBody } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiHeader } from '@nestjs/swagger';
 import { CreateReqIosAccessDto } from './shared/dtos/create-ios-access-dto';
 import { JwtAdminAuthGuard } from './auth/jwt.guard';
 
@@ -21,6 +21,9 @@ export class AppController {
   }
 
   @UseGuards(JwtAdminAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiHeader({ name: 'Authorization', required: false })
+  @UsePipes(new ValidationPipe({ transform: true }))
   @Get('request-test-accounts')
   async getTestAccounts() {
     return this.appService.getTestAccounts();
