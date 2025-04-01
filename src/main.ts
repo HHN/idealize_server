@@ -65,7 +65,8 @@ async function bootstrap() {
       'http://flutter-web-app',
       'https://flutter-web-app',
       'http://admin.campusconnects.de',
-      'https://admin.campusconnects.de'
+      'https://admin.campusconnects.de',
+      'https://landing.campusconnects.de'
     ],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
