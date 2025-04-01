@@ -80,6 +80,7 @@ export class AppModule implements NestModule {
         { path: 'tags', method: RequestMethod.GET },
         { path: 'tags/(.*)', method: RequestMethod.GET },
         { path: 'request-test-account', method: RequestMethod.POST },
+        { path: 'request-test-accounts', method: RequestMethod.GET },
         { path: 'hello-world', method: RequestMethod.GET }
       ).forRoutes('*');
   }
