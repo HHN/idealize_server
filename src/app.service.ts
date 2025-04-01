@@ -4,8 +4,14 @@ import { Model } from 'mongoose';
 import { RequestIosAccess, RequestIosAccessDocument } from './shared/schemas/request_ios_access.schema';
 import { CreateReqIosAccessDto } from './shared/dtos/create-ios-access-dto';
 
+import axios from 'axios';
+
+
 @Injectable()
 export class AppService {
+
+  private readonly RECAPTCHA_SECRET_KEY = '6LepSAYrAAAAADP4oDs_HxwI6SvK0euGY8MXCB5O';
+  private readonly VERIFICATION_URL = 'https://www.google.com/recaptcha/api/siteverify';
 
   constructor(
     @InjectModel(RequestIosAccess.name) private requestIosAccessModel: Model<RequestIosAccessDocument>,
@@ -26,11 +32,43 @@ export class AppService {
         HttpStatus.BAD_REQUEST,
       );
     }
+
+    if (!await this.verifyRecaptcha(createReqIosAccessDto.recaptchaToken)) {
+      throw new HttpException(
+        {
+          status: HttpStatus.BAD_REQUEST,
+          error: 'Invalid reCAPTCHA',
+          message: 'Invalid reCAPTCHA',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
     const requestIosAccess = new this.requestIosAccessModel(createReqIosAccessDto);
     return requestIosAccess.save();
   }
 
   async getTestAccounts() {
     return this.requestIosAccessModel.find();
+  }
+
+
+  private async verifyRecaptcha(token: string, remoteIp?: string): Promise<boolean> {
+    try {
+      const params = new URLSearchParams();
+      params.append('secret', this.RECAPTCHA_SECRET_KEY);
+      params.append('response', token);
+
+      if (remoteIp) {
+        params.append('remoteip', remoteIp);
+      }
+
+      const response = await axios.post(this.VERIFICATION_URL, params);
+
+      return response.data.success && response.data.score >= 0.5; // For v2 checkbox, you can just check 'success'
+    } catch (error) {
+      console.error('reCAPTCHA verification failed:', error);
+      return false;
+    }
   }
 }
