@@ -24,6 +24,7 @@ import { ArchiveModule } from './archives/archive.module';
 import { BugReportModule } from './bug-report/bug-report.module';
 import { UserStatusMiddleware } from './shared/middlewares/user_status_mw';
 import { RequestIosAccessSchema } from './shared/schemas/request_ios_access.schema';
+import { SurveySchema } from './shared/schemas/survey.schema';
 
 @Module({
   imports: [
@@ -39,7 +40,10 @@ import { RequestIosAccessSchema } from './shared/schemas/request_ios_access.sche
         useNewUrlParser: true,
       })
     }),
-    MongooseModule.forFeature([{ name: 'RequestIosAccess', schema: RequestIosAccessSchema }]),
+    MongooseModule.forFeature([
+      { name: 'RequestIosAccess', schema: RequestIosAccessSchema },
+      { name: 'Survey', schema: SurveySchema }
+    ]),
     UsersModule,
     ProjectsModule,
     TagModule,
@@ -81,6 +85,8 @@ export class AppModule implements NestModule {
         { path: 'tags/(.*)', method: RequestMethod.GET },
         { path: 'request-test-account', method: RequestMethod.POST },
         { path: 'request-test-accounts', method: RequestMethod.GET },
+        { path: 'submit-survey', method: RequestMethod.POST },
+        { path: 'survey-list', method: RequestMethod.GET },
         { path: 'hello-world', method: RequestMethod.GET }
       ).forRoutes('*');
   }

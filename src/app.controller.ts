@@ -3,6 +3,7 @@ import { AppService } from './app.service';
 import { ApiBearerAuth, ApiBody, ApiHeader } from '@nestjs/swagger';
 import { CreateReqIosAccessDto } from './shared/dtos/create-ios-access-dto';
 import { JwtAdminAuthGuard } from './auth/jwt.guard';
+import { CreateSurveyDto } from './shared/dtos/create-survey.dto';
 
 @Controller()
 export class AppController {
@@ -27,5 +28,21 @@ export class AppController {
   @Get('request-test-accounts')
   async getTestAccounts() {
     return this.appService.getTestAccounts();
+  }
+
+  @Post('submit-survey')
+  @ApiBody({ type: CreateSurveyDto })
+  @UsePipes(new ValidationPipe({ transform: true }))
+  async submitSurvey(@Body() body: CreateSurveyDto) {
+    return this.appService.submitSurvey(body);
+  }
+
+  @UseGuards(JwtAdminAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiHeader({ name: 'Authorization', required: false })
+  @UsePipes(new ValidationPipe({ transform: true }))
+  @Get('survey-list')
+  async getSurveyList() {
+    return this.appService.getSurveyList();
   }
 }

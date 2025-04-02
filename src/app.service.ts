@@ -5,6 +5,8 @@ import { RequestIosAccess, RequestIosAccessDocument } from './shared/schemas/req
 import { CreateReqIosAccessDto } from './shared/dtos/create-ios-access-dto';
 
 import axios from 'axios';
+import { CreateSurveyDto } from './shared/dtos/create-survey.dto';
+import { Survey, SurveyDocument } from './shared/schemas/survey.schema';
 
 
 @Injectable()
@@ -15,6 +17,7 @@ export class AppService {
 
   constructor(
     @InjectModel(RequestIosAccess.name) private requestIosAccessModel: Model<RequestIosAccessDocument>,
+    @InjectModel(Survey.name) private surveyModel: Model<SurveyDocument>,
   ) { }
 
   getHello(): string {
@@ -49,9 +52,29 @@ export class AppService {
   }
 
   async getTestAccounts() {
-    return this.requestIosAccessModel.find();
+    return this.requestIosAccessModel.find().sort({ createdAt: -1 });
   }
 
+  async submitSurvey(createSurveyDto: CreateSurveyDto) {
+
+    if (!await this.verifyRecaptcha(createSurveyDto.recaptchaToken)) {
+      throw new HttpException(
+        {
+          status: HttpStatus.BAD_REQUEST,
+          error: 'Invalid reCAPTCHA',
+          message: 'Invalid reCAPTCHA',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const survey = new this.surveyModel(createSurveyDto);
+    return survey.save();
+  }
+
+  async getSurveyList() {
+    return this.surveyModel.find().sort({ createdAt: -1 });
+  }
 
   private async verifyRecaptcha(token: string, remoteIp?: string): Promise<boolean> {
     try {
@@ -71,4 +94,6 @@ export class AppService {
       return false;
     }
   }
+
+
 }
