@@ -4,6 +4,7 @@ import { setupSwagger } from 'swagger/swagger.config';
 import * as dotenv from 'dotenv';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import rateLimit from 'express-rate-limit';
+import * as bodyParser from 'body-parser';
 
 // import { join } from 'path';
 // import * as express from 'express';
@@ -74,6 +75,9 @@ async function bootstrap() {
 
   /* Setup Swagger */
   setupSwagger(app);
+
+  app.use(bodyParser.json({ limit: '10mb' }));
+  app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
 
   await app.listen(process.env.PORT || 3000);
 }
