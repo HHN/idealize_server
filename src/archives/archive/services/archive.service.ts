@@ -50,7 +50,7 @@ export class ArchiveService {
         const jwtUser = await this.authService.decodeJWT(token);
 
         const likedProjectIds = await this.projectLikeService.findAll("", jwtUser.userId);
-        const projects = await this.archiveModel.find({ userId: jwtUser.userId })
+        const projects = await this.archiveModel.find({ userId: jwtUser.userId, softDeleted: false })
             .populate({
                 path: 'userId',
                 select: '_id firstName lastName email status userType interestedTags interestedCourses username',
