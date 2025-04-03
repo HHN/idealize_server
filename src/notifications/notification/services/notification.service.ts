@@ -184,7 +184,7 @@ export class NotificationService {
 
     async clear(token: string): Promise<boolean> {
         const jwtUser = await this.authService.decodeJWT(token);
-        const result = await this.notificationModel.updateMany(
+        const result = await this.notificationModel.deleteMany(
             {
                 receiver: jwtUser.userId,
                 $or: [
@@ -198,7 +198,6 @@ export class NotificationService {
                     }
                 ]
             },
-            { $set: { softDeleted: true } },
         );
 
         return result != null;
