@@ -47,9 +47,9 @@ export class UploadsController {
               cb(new Error('File type is not allowed!'), false);  // Reject the file
             }
           },
-        limits: {
-            fileSize: 10 * 1024 * 1024,  // 5MB file size limit
-        },
+        // limits: {
+        //     fileSize: 10 * 1024 * 1024,  // 5MB file size limit
+        // },
     }))
     @ApiOperation({
         summary: 'This endpoint upload a file',
