@@ -144,7 +144,7 @@ export class ArchiveService {
         for (const project of projects) {
 
             const p: any = project;
-            if (p.projectId.softDeleted == true) {
+            if (p.projectId == null || p.projectId.softDeleted == true) {
                 continue;
             }
 
