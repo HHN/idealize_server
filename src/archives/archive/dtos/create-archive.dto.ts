@@ -10,4 +10,9 @@ export class CreateArchiveDto {
     @IsNotEmpty()
     @IsString()
     readonly projectId: string;
+
+    @ApiProperty()
+    @IsNotEmpty()
+    @IsString()
+    readonly projectOwnerId: string
 }

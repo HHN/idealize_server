@@ -23,25 +23,32 @@ export class CommentsService {
       const checkParentcommentIdOwner = await this.commentModel.findOne({ _id: createCommentDto.parentCommentId });
       const replyForUserId = checkParentcommentIdOwner.userId;
 
-      this.notificationService.generalNotification(
-        {
-          title: 'New Comment',
-          message: createCommentDto.content,
-          projectId: createCommentDto.projectId,
-          type: createCommentDto.parentCommentId != null ? 'reply-comment' : 'comment',
-          sender: jwtUser.userId,
-          receiver: replyForUserId.toString() != jwtUser.userId.toString() ? replyForUserId.toString() : '',
-        }, token);
+      if (replyForUserId.toString() != jwtUser.userId.toString()) {
+        this.notificationService.generalNotification(
+          {
+            title: 'New Comment',
+            message: createCommentDto.content,
+            projectId: createCommentDto.projectId,
+            type: createCommentDto.parentCommentId != null ? 'reply-comment' : 'comment',
+            sender: jwtUser.userId,
+            receiver: replyForUserId.toString() != jwtUser.userId.toString() ? replyForUserId.toString() : '',
+          }, token);
+      }
+
     } else {
-      this.notificationService.generalNotification(
-        {
-          title: 'New Comment',
-          message: createCommentDto.content,
-          projectId: createCommentDto.projectId,
-          type: createCommentDto.parentCommentId != null ? 'reply-comment' : 'comment',
-          sender: jwtUser.userId,
-          receiver: '',
-        }, token);
+
+      if (createCommentDto.userId != createCommentDto.projectOwnerId) {
+        this.notificationService.generalNotification(
+          {
+            title: 'New Comment',
+            message: createCommentDto.content,
+            projectId: createCommentDto.projectId,
+            type: createCommentDto.parentCommentId != null ? 'reply-comment' : 'comment',
+            sender: jwtUser.userId,
+            receiver: '',
+          }, token);
+      }
+
     }
 
 

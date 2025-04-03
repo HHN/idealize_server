@@ -18,4 +18,9 @@ export class CreateCommentDto {
     @IsNotEmpty()
     @IsString()
     readonly content: string; // Content of the comment
+
+    @ApiProperty()
+    @IsNotEmpty()
+    @IsString()
+    readonly projectOwnerId: string
 }

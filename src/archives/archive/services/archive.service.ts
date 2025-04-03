@@ -31,16 +31,19 @@ export class ArchiveService {
                 projectId: createArchiveDto.projectId,
             });
 
-            // Create a notification
-            this.notificationService.generalNotification(
-                {
-                    title: 'Project archived',
-                    message: 'Project archived',
-                    projectId: createArchiveDto.projectId,
-                    type: 'bookmark',
-                    sender: jwtUser.userId,
-                    receiver: '',
-                }, token);
+            if (createArchiveDto.userId != createArchiveDto.projectOwnerId) {
+                // Create a notification
+                this.notificationService.generalNotification(
+                    {
+                        title: 'Project archived',
+                        message: 'Project archived',
+                        projectId: createArchiveDto.projectId,
+                        type: 'bookmark',
+                        sender: jwtUser.userId,
+                        receiver: '',
+                    }, token);
+            }
+
 
             return createdArchive.save();
         }
