@@ -405,37 +405,47 @@ export class ProjectsService {
       var membersRequestsShouldBeKept = [];
       const existingTeamMembers: string[] = currentProject.teamMembers.map(item => item.toString()) || [];
       const pendingTeamMembers: string[] = await this.joinRequestService.findPendingMembers(id) || [];
-      const newTeamMembers: string[] = updateProjectDto.teamMembers || [];
 
-      var updatedUsers: string[] = [];
+      if (jwtUser.userId != currentProject.owner.toString()) {
+        // You're a team member who wants to edit project
+        const newUpdateProjectDtoWithoutTeamMembers = { ...updateProjectDto };
+        delete newUpdateProjectDtoWithoutTeamMembers.teamMembers;
+        return this.projectModel.findByIdAndUpdate(id, { ...newUpdateProjectDtoWithoutTeamMembers }, { new: true }).exec();
+      } else {
+        // You're owner
+        const newTeamMembers: string[] = updateProjectDto.teamMembers || [];
 
-      if (existingTeamMembers) {
-        existingTeamMembers.forEach((member) => {
-          if (newTeamMembers.includes(member)) {
-            updatedUsers.push(member);
-          }
-        });
+        var updatedUsers: string[] = [];
+
+        if (existingTeamMembers) {
+          existingTeamMembers.forEach((member) => {
+            if (newTeamMembers.includes(member)) {
+              updatedUsers.push(member);
+            }
+          });
+        }
+
+        if (pendingTeamMembers) {
+          pendingTeamMembers.forEach((member) => {
+            if (newTeamMembers.includes(member)) {
+              membersRequestsShouldBeKept.push(member);
+            }
+          });
+        }
+
+        if (newTeamMembers) {
+          newTeamMembers.forEach((member) => {
+            if (!existingTeamMembers.includes(member) && !pendingTeamMembers.includes(member)) {
+              membersRequestsShouldBeKept.push(member);
+            }
+          })
+        }
+
+        await this.joinRequestService.upateTeamMemberRequests(jwtUser.userId, currentProject._id.toString(), membersRequestsShouldBeKept, token);
+
+        return this.projectModel.findByIdAndUpdate(id, { ...updateProjectDto, teamMembers: updatedUsers }, { new: true }).exec();
       }
 
-      if (pendingTeamMembers) {
-        pendingTeamMembers.forEach((member) => {
-          if (newTeamMembers.includes(member)) {
-            membersRequestsShouldBeKept.push(member);
-          }
-        });
-      }
-
-      if (newTeamMembers) {
-        newTeamMembers.forEach((member) => {
-          if (!existingTeamMembers.includes(member) && !pendingTeamMembers.includes(member)) {
-            membersRequestsShouldBeKept.push(member);
-          }
-        })
-      }
-
-      await this.joinRequestService.upateTeamMemberRequests(jwtUser.userId, currentProject._id.toString(), membersRequestsShouldBeKept, token);
-
-      return this.projectModel.findByIdAndUpdate(id, { ...updateProjectDto, teamMembers: updatedUsers }, { new: true }).exec();
     } else {
       throw new HttpException(
         {
