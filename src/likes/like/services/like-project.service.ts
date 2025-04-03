@@ -21,31 +21,34 @@ export class ProjectLikeService {
       const createdLike = new this.likeModel(createLikeDto);
       await createdLike.save();
 
-      // Create a notification
-      this.notificationService.generalNotification(
-        {
-          title: 'Project liked',
-          message: 'Project liked',
-          projectId: createLikeDto.projectId,
-          type: 'like',
-          sender: createLikeDto.userId,
-          receiver: '',
-        }, token);
+      if (createLikeDto.userId != createLikeDto.projectOwnerId) {
+        // Create a notification
+        this.notificationService.generalNotification(
+          {
+            title: 'Project liked',
+            message: 'Project liked',
+            projectId: createLikeDto.projectId,
+            type: 'like',
+            sender: createLikeDto.userId,
+            receiver: '',
+          }, token);
+      }
 
       return true;
     } else {
 
-      // Create a notification
-      this.notificationService.generalNotification(
-        {
-          title: 'Project unliked',
-          message: 'Project unliked',
-          projectId: createLikeDto.projectId,
-          type: 'like',
-          sender: createLikeDto.userId,
-          receiver: '',
-        }, token);
-
+      if (createLikeDto.userId != createLikeDto.projectOwnerId) {
+        // Create a notification
+        this.notificationService.generalNotification(
+          {
+            title: 'Project unliked',
+            message: 'Project unliked',
+            projectId: createLikeDto.projectId,
+            type: 'like',
+            sender: createLikeDto.userId,
+            receiver: '',
+          }, token);
+      }
 
       return await this.delete(isLiked._id.toString(), token);
     }
@@ -55,11 +58,11 @@ export class ProjectLikeService {
 
     var query = {};
 
-    if(projectId !== "" && projectId !== null) {
+    if (projectId !== "" && projectId !== null) {
       query['projectId'] = projectId;
     }
 
-    if(userId !== "" && userId !== null) {
+    if (userId !== "" && userId !== null) {
       query['userId'] = userId;
     }
 

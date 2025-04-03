@@ -11,4 +11,9 @@ export class CreateProjectLikeDto {
   @IsString()
   readonly projectId: string;
 
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsString()
+  readonly projectOwnerId: string;
+
 }
