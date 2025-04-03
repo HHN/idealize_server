@@ -50,7 +50,7 @@ export class ArchiveService {
         const jwtUser = await this.authService.decodeJWT(token);
 
         const likedProjectIds = await this.projectLikeService.findAll("", jwtUser.userId);
-        const projects = await this.archiveModel.find({ userId: jwtUser.userId, softDeleted: false })
+        const projects = await this.archiveModel.find({ userId: jwtUser.userId })
             .populate({
                 path: 'userId',
                 select: '_id firstName lastName email status userType interestedTags interestedCourses username',
@@ -142,6 +142,12 @@ export class ArchiveService {
         let projectsWithLikes = [];
 
         for (const project of projects) {
+
+            const p: any = project;
+            if (p.projectId.softDeleted == true) {
+                continue;
+            }
+
             const isLiked = likedProjectIds.likes.findIndex(item => item.projectId.toString() == project.projectId._id.toString()) !== -1;
             const comments = await this.commentsService.findAllOfCommentsCount(project.projectId._id.toString());
             const likes = await this.projectLikeService.likesCount(project.projectId._id.toString());
