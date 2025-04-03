@@ -29,24 +29,24 @@ export class UploadsController {
         }),
         fileFilter: (req, file, cb) => {
             const allowedMimeTypes = [
-              'image/jpeg',
-              'image/png',
-              'image/gif',
-              'application/pdf',
-              'application/msword',  // .doc
-              'application/vnd.openxmlformats-officedocument.wordprocessingml.document',  // .docx
-              'application/vnd.ms-powerpoint',  // .ppt
-              'application/vnd.openxmlformats-officedocument.presentationml.presentation',  // .pptx
-              'video/mp4',  // MP4 videos
+                'image/jpeg',
+                'image/png',
+                'image/gif',
+                'application/pdf',
+                'application/msword',  // .doc
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',  // .docx
+                'application/vnd.ms-powerpoint',  // .ppt
+                'application/vnd.openxmlformats-officedocument.presentationml.presentation',  // .pptx
+                'video/mp4',  // MP4 videos
             ];
-            
+
             console.log('file.mimetype: ', file.mimetype);
             if (allowedMimeTypes.includes(file.mimetype)) {
-              cb(null, true);  // Accept the file
+                cb(null, true);  // Accept the file
             } else {
-              cb(new Error('File type is not allowed!'), false);  // Reject the file
+                cb(new Error('File type is not allowed!'), false);  // Reject the file
             }
-          },
+        },
         // limits: {
         //     fileSize: 10 * 1024 * 1024,  // 5MB file size limit
         // },
@@ -58,6 +58,10 @@ export class UploadsController {
     @ApiHeader({ name: 'Authorization', required: false })
     @UsePipes(new ValidationPipe({ transform: true }))
     uploadFile(@UploadedFile() file, @Headers('Authorization') token: string) {
+        const maxSize = 10 * 1024 * 1024; // 10MB
+        if (file.size > maxSize) {
+            throw new Error('File size maximum is 10MB');
+        }
         return this.uploadService.new(file, token);
     }
 
