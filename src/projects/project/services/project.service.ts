@@ -667,11 +667,11 @@ export class ProjectsService {
       if (jwtUser.userId.toString() !== foundUser.owner.toString()) {
         throw new HttpException(
           {
-            status: HttpStatus.FORBIDDEN,
+            status: HttpStatus.NOT_ACCEPTABLE,
             error: 'Permission denied',
             message: 'You dont have permission to delete the project',
           },
-          HttpStatus.FORBIDDEN,
+          HttpStatus.NOT_ACCEPTABLE,
         );
       }
 
