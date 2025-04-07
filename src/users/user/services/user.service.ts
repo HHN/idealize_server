@@ -894,10 +894,10 @@ export class UsersService {
 
   async sendResetPasswordRequest(resetPasswordRequestDto: ResetPasswordRequestDto) {
 
-    const existingUser = await this.userModel.findOneAndUpdate({ email: resetPasswordRequestDto.email, softDeleted: false, isBlockedByAdmin: false, }, {
+    const existingUser = await this.userModel.findOne({
+      email: resetPasswordRequestDto.email,
       softDeleted: false,
       isBlockedByAdmin: false,
-      status: true
     }).exec();
 
     if (!existingUser) {
@@ -909,6 +909,17 @@ export class UsersService {
         },
         HttpStatus.NOT_FOUND,
       );
+    } else {
+      if (existingUser.status === false) {
+        throw new HttpException(
+          {
+            status: HttpStatus.NOT_FOUND,
+            error: 'Incorrect Data',
+            message: 'User not verified!',
+          },
+          HttpStatus.NOT_FOUND,
+        );
+      }
     }
 
     // verification code
