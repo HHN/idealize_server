@@ -651,53 +651,42 @@ export class ProjectsService {
   async remove(id: string, token: string): Promise<Project> {
     const jwtUser = await this.authService.decodeJWT(token);
 
-    try {
-      if (!isValidObjectId(id)) {
-        throw new HttpException(
-          {
-            status: HttpStatus.BAD_REQUEST,
-            error: 'Project Id',
-            message: `The provided project id ${id} is not valid!`,
-          },
-          HttpStatus.BAD_REQUEST,
-        );
-      } else {
-        const objectId = new ObjectId(id);
-        const foundUser = await this.projectModel.findById(objectId).exec();
-
-        if (jwtUser.userId.toString() !== foundUser.owner.toString()) {
-          throw new HttpException(
-            {
-              status: HttpStatus.FORBIDDEN,
-              error: 'Permission denied',
-              message: 'You dont have permission to delete the project',
-            },
-            HttpStatus.FORBIDDEN,
-          );
-        }
-
-        if (foundUser) {
-          return this.projectModel.findByIdAndDelete(objectId).exec();
-        } else {
-          throw new HttpException(
-            {
-              status: HttpStatus.NOT_FOUND,
-              error: 'Project Not Found',
-              message: `The provided project id ${id} does not exist`,
-            },
-            HttpStatus.NOT_FOUND,
-          );
-        }
-      }
-    } catch (error) {
+    if (!isValidObjectId(id)) {
       throw new HttpException(
         {
-          status: HttpStatus.NOT_FOUND,
-          error: error.name,
-          message: error?.message ?? '',
+          status: HttpStatus.BAD_REQUEST,
+          error: 'Project Id',
+          message: `The provided project id ${id} is not valid!`,
         },
-        HttpStatus.NOT_FOUND,
+        HttpStatus.BAD_REQUEST,
       );
+    } else {
+      const objectId = new ObjectId(id);
+      const foundUser = await this.projectModel.findById(objectId).exec();
+
+      if (jwtUser.userId.toString() !== foundUser.owner.toString()) {
+        throw new HttpException(
+          {
+            status: HttpStatus.FORBIDDEN,
+            error: 'Permission denied',
+            message: 'You dont have permission to delete the project',
+          },
+          HttpStatus.FORBIDDEN,
+        );
+      }
+
+      if (foundUser) {
+        return this.projectModel.findByIdAndDelete(objectId).exec();
+      } else {
+        throw new HttpException(
+          {
+            status: HttpStatus.NOT_FOUND,
+            error: 'Project Not Found',
+            message: `The provided project id ${id} does not exist`,
+          },
+          HttpStatus.NOT_FOUND,
+        );
+      }
     }
   }
 
