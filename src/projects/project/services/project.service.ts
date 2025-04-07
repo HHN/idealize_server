@@ -648,7 +648,9 @@ export class ProjectsService {
     }
   }
 
-  async remove(id: string): Promise<Project> {
+  async remove(id: string, token: string): Promise<Project> {
+    const jwtUser = await this.authService.decodeJWT(token);
+
     try {
       if (!isValidObjectId(id)) {
         throw new HttpException(
@@ -662,6 +664,18 @@ export class ProjectsService {
       } else {
         const objectId = new ObjectId(id);
         const foundUser = await this.projectModel.findById(objectId).exec();
+
+        if (jwtUser.userId.toString() !== foundUser.owner.toString()) {
+          throw new HttpException(
+            {
+              status: HttpStatus.FORBIDDEN,
+              error: 'Permission denied',
+              message: 'You dont have permission to delete the project',
+            },
+            HttpStatus.FORBIDDEN,
+          );
+        }
+
         if (foundUser) {
           return this.projectModel.findByIdAndDelete(objectId).exec();
         } else {

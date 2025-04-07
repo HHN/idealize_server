@@ -48,13 +48,13 @@ export class ProjectsController {
   ): Promise<{ projects: Project[]; total: number }> {
     return this.projectsService.findAll(
       page,
-      limit, 
-      token, 
-      owner, 
-      search, 
-      sort, 
-      filter, 
-      filterByTag, 
+      limit,
+      token,
+      owner,
+      search,
+      sort,
+      filter,
+      filterByTag,
       joined || false
     );
   }
@@ -75,10 +75,10 @@ export class ProjectsController {
     @Query('filterByTag') filterByTag?: string,
     @Query('joined') joined?: boolean,
   ): Promise<{ projects: Project[]; total: number }> {
-    return this.projectsService.findAllOfMyProjects(page, 
-      limit, 
-      isDraft, 
-      token, 
+    return this.projectsService.findAllOfMyProjects(page,
+      limit,
+      isDraft,
+      token,
       filterByTag,
       joined || false
     );
@@ -162,7 +162,10 @@ export class ProjectsController {
     description: 'This endpoint deletes a project',
   })
   @UsePipes(new ValidationPipe({ transform: true }))
-  async remove(@Param('id') id: string): Promise<Project> {
-    return this.projectsService.remove(id);
+  async remove(
+    @Param('id') id: string,
+    @Headers('Authorization') token: string
+  ): Promise<Project> {
+    return this.projectsService.remove(id, token);
   }
 }
