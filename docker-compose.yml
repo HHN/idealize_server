@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   # Backend Service
-  backend:
+  backend-dev:
     container_name: backend-dev
     build:
       context: .
@@ -17,7 +17,7 @@ services:
       - server-network-dev
 
   # MongoDB Service
-  db-mongo:
+  db-mongo-dev:
     container_name: db-mongo-dev
     image: mongo
     volumes:
