@@ -10,7 +10,7 @@ services:
     volumes:
       - ./uploads:/app/uploads
     ports:
-      - "3000:3000"
+      - "6000:6000"
     depends_on:
       - db-mongo
     networks:

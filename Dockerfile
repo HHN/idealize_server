@@ -13,6 +13,6 @@ COPY config/env/production.env production.env
 
 RUN npm run build
 
-EXPOSE 3000
+EXPOSE 6000
 
 CMD ["npm", "run" ,"start:prod"]

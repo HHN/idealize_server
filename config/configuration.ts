@@ -1,6 +1,6 @@
 export const configuration = () => ({
     NODE_ENV: process.env.NODE_ENV,
-    port: parseInt(process.env.PORT, 10) || 3000,
+    port: parseInt(process.env.PORT, 10) || 6000,
     jwt: {
         secret: process.env.JWT_SECRET,
         adminSecret: process.env.JWT_ADMIN_SECRET,
