@@ -3,7 +3,7 @@ version: '3.8'
 services:
   # Backend Service
   backend:
-    container_name: backend
+    container_name: backend-dev
     build:
       context: .
       dockerfile: Dockerfile
@@ -12,23 +12,23 @@ services:
     ports:
       - "6000:6000"
     depends_on:
-      - db-mongo
+      - db-mongo-dev
     networks:
-      - server-network
+      - server-network-dev
 
   # MongoDB Service
   db-mongo:
-    container_name: db-mongo
+    container_name: db-mongo-dev
     image: mongo
     volumes:
-      - mongo-data:/data/db
+      - mongo-data-dev:/data/db
     restart: unless-stopped
     networks:
-      - server-network
+      - server-network-dev
 
 volumes:
-  mongo-data:
+  mongo-data-dev:
 
 networks:
-  server-network:
+  server-network-dev:
     driver: bridge
