@@ -10,6 +10,7 @@ COPY . .
 
 COPY config/env/development.env development.env
 COPY config/env/production.env production.env
+COPY config/env/staging.env staging.env
 
 RUN npm run build
 

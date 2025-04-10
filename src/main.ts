@@ -18,7 +18,11 @@ async function bootstrap() {
   if (process.env.NODE_ENV === 'production') {
     dotenv.config({ path: 'production.env' });
   } else {
-    dotenv.config({ path: 'development.env' });
+    if (process.env.NODE_ENV === 'development') {
+      dotenv.config({ path: 'development.env' });
+    } else {
+      dotenv.config({ path: 'staging.env' });
+    }
   }
 
   /* Create NestJS application */
