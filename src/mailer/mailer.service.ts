@@ -49,7 +49,7 @@ export class MailerService {
     }
 
     async sendVerificationEmail(to: string, name: string, code: string) {
-        console.log(`-----> Mailgun debug [${name}]`, code);
+        console.log(`-----> Mailgun debug sendVerificationEmail [${name}]`, code);
 
         const domain = configuration().mailgun.domain;
         const from = configuration().mailgun.from;
@@ -91,7 +91,7 @@ export class MailerService {
     }
 
     async sendSoftDeleteConfirmationEmail(to: string, name: string, code: string) {
-        console.log(`-----> Mailgun debug [${name}]`, code);
+        console.log(`-----> Mailgun debug sendSoftDeleteConfirmationEmail [${name}]`, code);
 
         const domain = configuration().mailgun.domain;
         const from = configuration().mailgun.from;
@@ -113,7 +113,7 @@ export class MailerService {
     }
 
     async sendResetPasswordCodeEmail(to: string, name: string, code: string) {
-        console.log(`-----> Mailgun debug [${name}]`, code);
+        console.log(`-----> Mailgun debug sendResetPasswordCodeEmail [${name}]`, code);
 
         const domain = configuration().mailgun.domain;
         const from = configuration().mailgun.from;

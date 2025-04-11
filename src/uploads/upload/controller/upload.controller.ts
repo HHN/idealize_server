@@ -34,6 +34,10 @@ export class UploadsController {
                 'image/gif',
                 'application/pdf',
                 'application/msword',  // .doc
+                'application/pptx',
+                'application/ppt',
+                'application/docx',
+                'application/doc',
                 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',  // .docx
                 'application/vnd.ms-powerpoint',  // .ppt
                 'application/vnd.openxmlformats-officedocument.presentationml.presentation',  // .pptx
