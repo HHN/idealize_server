@@ -18,7 +18,11 @@ async function bootstrap() {
   if (process.env.NODE_ENV === 'production') {
     dotenv.config({ path: 'production.env' });
   } else {
-    dotenv.config({ path: 'development.env' });
+    if (process.env.NODE_ENV === 'development') {
+      dotenv.config({ path: 'development.env' });
+    } else {
+      dotenv.config({ path: 'staging.env' });
+    }
   }
 
   /* Create NestJS application */
@@ -62,11 +66,12 @@ async function bootstrap() {
   app.enableCors({
     origin: [
       'http://localhost:4200',
+      'http://localhost:8200',
       'http://localhost:8080',
       'http://flutter-web-app',
       'https://flutter-web-app',
-      'http://admin.campusconnects.de',
-      'https://admin.campusconnects.de',
+      'http://admin-dev.campusconnects.de',
+      'https://admin-dev.campusconnects.de',
       'https://landing.campusconnects.de'
     ],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
@@ -79,7 +84,7 @@ async function bootstrap() {
   app.use(bodyParser.json({ limit: '10mb' }));
   app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
 
-  await app.listen(process.env.PORT || 3000);
+  await app.listen(process.env.PORT || 6000);
 }
 
 bootstrap();

@@ -26,6 +26,10 @@ export class UserStatusMiddleware implements NestMiddleware {
 
             const user = await this.userModel.findById(userId);
 
+            if (!user) {
+                throw new ForbiddenException('user_not_found');
+            }
+
             const isBlockedByAdmin: boolean = user.isBlockedByAdmin || false;
             const userStatus: boolean = user.status || false;
 
@@ -40,7 +44,7 @@ export class UserStatusMiddleware implements NestMiddleware {
             next();
         }
         catch (e) {
-            console.log('UserStatusMiddleware =================> ', e);
+            // console.log('UserStatusMiddleware =================> ', e);
             if (e.message == 'user_blocked_admin_caption')
                 throw new ForbiddenException('user_blocked_admin_caption');
             else if (e.message == 'user_forbidden_caption')

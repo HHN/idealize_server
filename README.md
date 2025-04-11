@@ -65,7 +65,7 @@ touch production.env # create production env file
 Now you have to add these lines into your env files based on your data
 
 ```env
-PORT=3000
+PORT=6000
 JWT_EXPIRES_IN=3m
 JWT_REFRESH_EXPIRES_IN=10d
 UPLOAD_PATH=./uploads
@@ -143,7 +143,7 @@ touch production.env # create production env file
 Now you have to add these lines into your env files based on your data
 
 ```env
-PORT=3000
+PORT=6000
 JWT_EXPIRES_IN=3m
 JWT_REFRESH_EXPIRES_IN=10d
 UPLOAD_PATH=./uploads
