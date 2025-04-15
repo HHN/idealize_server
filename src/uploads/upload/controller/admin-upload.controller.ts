@@ -1,4 +1,4 @@
-import { Controller, Post, Headers, UploadedFile, UseGuards, UseInterceptors, UsePipes, ValidationPipe, Delete, Param, Get, Res } from '@nestjs/common';
+import { Controller, Post, Headers, UploadedFile, UseGuards, UseInterceptors, UsePipes, ValidationPipe, Delete, Param, Get, Res, HttpException, HttpStatus } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
@@ -57,5 +57,20 @@ export class AdminUploadsController {
     @UsePipes(new ValidationPipe({ transform: true }))
     async getAll() {
         return this.uploadService.getAll();
+    }
+
+    @UseGuards(JwtAdminAuthGuard)
+    @Delete('file/:fileId')
+    @ApiOperation({
+        summary: 'Delete a file by fileId',
+        description: 'Deletes a file from the storage system using the fileId'
+    })
+    @ApiHeader({ name: 'Authorization', required: false })
+    @UsePipes(new ValidationPipe({ transform: true }))
+    async deleteFile(
+        @Param('fileId') fileId: string,
+        @Headers('Authorization') token: string
+    ) {
+        return await this.uploadService.removeByAdmin(fileId, token);
     }
 }
