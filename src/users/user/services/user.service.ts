@@ -55,8 +55,8 @@ export class UsersService {
 
         // verification code
         const code = Math.floor(1000 + Math.random() * 9000).toString();
-        // Expire code after 2 minutes
-        const codeExpire = new Date(Date.now() + 2 * 60 * 1000);
+        // Expire code after 5 minutes
+        const codeExpire = new Date(Date.now() + 5 * 60 * 1000);
 
         existingUser.firstName = createUserDto.firstName;
         existingUser.lastName = createUserDto.lastName;
@@ -89,8 +89,8 @@ export class UsersService {
 
     // verification code
     const code = Math.floor(1000 + Math.random() * 9000).toString();
-    // Expire code after 2 minutes
-    const codeExpire = new Date(Date.now() + 2 * 60 * 1000);
+    // Expire code after 5 minutes
+    const codeExpire = new Date(Date.now() + 5 * 60 * 1000);
 
     const updatedCreatedUserDTO = {
       ...createUserDto,
@@ -131,8 +131,8 @@ export class UsersService {
 
       // verification code
       const code = Math.floor(1000 + Math.random() * 9000).toString();
-      // Expire code after 2 minutes
-      const codeExpire = new Date(Date.now() + 2 * 60 * 1000);
+      // Expire code after 5 minutes
+      const codeExpire = new Date(Date.now() + 5 * 60 * 1000);
 
       existingUser.code = this.authService.hashPassword(code);
       existingUser.codeExpire = codeExpire;
@@ -381,8 +381,8 @@ export class UsersService {
 
         // verification code
         const code = Math.floor(1000 + Math.random() * 9000).toString();
-        // Expire code after 2 minutes
-        const codeExpire = new Date(Date.now() + 2 * 60 * 1000);
+        // Expire code after 5 minutes
+        const codeExpire = new Date(Date.now() + 5 * 60 * 1000);
 
         existingUser.code = this.authService.hashPassword(code);
         existingUser.codeExpire = codeExpire;
@@ -683,8 +683,8 @@ export class UsersService {
 
     // verification code
     const code = Math.floor(1000 + Math.random() * 9000).toString();
-    // Expire code after 2 minutes
-    const codeExpire = new Date(Date.now() + 2 * 60 * 1000);
+    // Expire code after 5 minutes
+    const codeExpire = new Date(Date.now() + 5 * 60 * 1000);
 
     existingUser.code = this.authService.hashPassword(code);
     existingUser.codeExpire = codeExpire;
@@ -730,8 +730,8 @@ export class UsersService {
 
     // verification code
     const code = Math.floor(1000 + Math.random() * 9000).toString();
-    // Expire code after 2 minutes
-    const codeExpire = new Date(Date.now() + 2 * 60 * 1000);
+    // Expire code after 5 minutes
+    const codeExpire = new Date(Date.now() + 5 * 60 * 1000);
 
     existingUser.code = this.authService.hashPassword(code);
     existingUser.codeExpire = codeExpire;
@@ -778,8 +778,8 @@ export class UsersService {
 
     // verification code
     const code = Math.floor(1000 + Math.random() * 9000).toString();
-    // Expire code after 2 minutes
-    const codeExpire = new Date(Date.now() + 2 * 60 * 1000);
+    // Expire code after 5 minutes
+    const codeExpire = new Date(Date.now() + 5 * 60 * 1000);
 
     existingUser.code = this.authService.hashPassword(code);
     existingUser.codeExpire = codeExpire;
@@ -924,8 +924,8 @@ export class UsersService {
 
     // verification code
     const code = Math.floor(1000 + Math.random() * 9000).toString();
-    // Expire code after 2 minutes
-    const codeExpire = new Date(Date.now() + 2 * 60 * 1000);
+    // Expire code after 5 minutes
+    const codeExpire = new Date(Date.now() + 5 * 60 * 1000);
 
     existingUser.code = this.authService.hashPassword(code);
     existingUser.codeExpire = codeExpire;
