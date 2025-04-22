@@ -894,17 +894,11 @@ export class UsersService {
 
   async sendResetPasswordRequest(resetPasswordRequestDto: ResetPasswordRequestDto, useRecoveryEmail: boolean = false) {
 
-    const existingUser = await this.userModel.findOne(
-      useRecoveryEmail ? {
-        recoveryEmail: resetPasswordRequestDto.email,
+    const existingUser = await this.userModel.findOne({
+        email: resetPasswordRequestDto.email,
         softDeleted: false,
         isBlockedByAdmin: false,
-      } :
-        {
-          email: resetPasswordRequestDto.email,
-          softDeleted: false,
-          isBlockedByAdmin: false,
-        }).exec();
+      }).exec();
 
     if (!existingUser) {
       throw new HttpException(
