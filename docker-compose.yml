@@ -27,7 +27,7 @@ services:
       - server-network-dev
 
 volumes:
-  mongo-data:
+  mongo-data-dev:
 
 networks:
   server-network-dev:
