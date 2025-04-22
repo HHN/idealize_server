@@ -1,4 +1,4 @@
-FROM node:18
+FROM node:23-slim
 
 WORKDIR /app
 
@@ -8,12 +8,11 @@ RUN npm install
 
 COPY . .
 
-# COPY config/env/development.env development.env
-# COPY config/env/production.env production.env
-COPY config/env/staging.env staging.env
+COPY config/env/development.env development.env
+COPY config/env/production.env production.env
 
 RUN npm run build
 
-EXPOSE 6000
+EXPOSE 3000
 
 CMD ["npm", "run" ,"start:prod"]
