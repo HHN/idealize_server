@@ -21,7 +21,7 @@ services:
     container_name: db-mongo-dev
     image: mongo
     volumes:
-      - mongo-data:/data/db-dev
+      - mongo-data-dev:/data/db
     restart: unless-stopped
     networks:
       - server-network-dev
