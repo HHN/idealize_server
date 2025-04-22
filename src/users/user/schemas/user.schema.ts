@@ -14,6 +14,9 @@ export class User {
     @Prop({ required: true, unique: true })
     email: string;
 
+    @Prop({ required: false, default: '' })
+    recoveryEmail?: string;
+
     @Prop({ required: false })
     username: string;
 

@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsArray, IsOptional, IsString } from 'class-validator';
+import { IsArray, IsEmail, IsOptional, IsString } from 'class-validator';
 
 export class UpdateUserDto {
     @ApiProperty()
@@ -16,6 +16,13 @@ export class UpdateUserDto {
     @IsString()
     @Transform(({ value }) => value.toLowerCase())
     readonly username: string;
+
+    @ApiProperty()
+    @IsOptional()
+    @IsEmail()
+    @Transform(({ value }) => value.toLowerCase())
+    readonly recoveryEmail: string;
+
     @ApiProperty()
     @IsOptional()
     @IsString()
@@ -32,5 +39,5 @@ export class UpdateUserDto {
     @ApiProperty({ required: false })
     @IsArray()
     readonly studyPrograms: string[];
-    
+
 }

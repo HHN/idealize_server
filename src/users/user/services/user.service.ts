@@ -641,7 +641,7 @@ export class UsersService {
     return user;
   }
 
-  async softDeleteUserRequest(token: string) {
+  async softDeleteUserRequest(token: string, useRecoveryEmail: boolean = false) {
     const jwtUser = await this.authService.decodeJWT(token);
     const existingUser = await this.userModel.findOne({
       _id: jwtUser.userId,
@@ -692,7 +692,7 @@ export class UsersService {
 
     try {
       await this.mailerServive.sendSoftDeleteConfirmationEmail(
-        existingUser.email,
+        useRecoveryEmail ? (existingUser.recoveryEmail ? existingUser.recoveryEmail : existingUser.email) : existingUser.email,
         `${existingUser.firstName} ${existingUser.lastName}`,
         code,
       );
@@ -703,12 +703,12 @@ export class UsersService {
     return {
       message: 'otp_sent_success',
       user: {
-        email: existingUser.email,
+        email: useRecoveryEmail ? (existingUser.recoveryEmail ? existingUser.recoveryEmail : existingUser.email) : existingUser.email,
       }
     };
   }
 
-  async softAnonymizedDeleteUserRequest(token: string) {
+  async softAnonymizedDeleteUserRequest(token: string, useRecoveryEmail: boolean = false) {
     const jwtUser = await this.authService.decodeJWT(token);
     const existingUser = await this.userModel.findOne({
       _id: jwtUser.userId,
@@ -739,7 +739,7 @@ export class UsersService {
 
     try {
       await this.mailerServive.sendSoftDeleteConfirmationEmail(
-        existingUser.email,
+        useRecoveryEmail ? (existingUser.recoveryEmail ? existingUser.recoveryEmail : existingUser.email) : existingUser.email,
         `${existingUser.firstName} ${existingUser.lastName}`,
         code,
       );
@@ -750,13 +750,13 @@ export class UsersService {
     return {
       message: 'otp_sent_success',
       user: {
-        email: existingUser.email,
+        email: useRecoveryEmail ? (existingUser.recoveryEmail ? existingUser.recoveryEmail : existingUser.email) : existingUser.email,
       }
     };
 
   }
 
-  async softKeepDataDeleteUserRequest(token: string) {
+  async softKeepDataDeleteUserRequest(token: string, useRecoveryEmail: boolean = false) {
     const jwtUser = await this.authService.decodeJWT(token);
     const existingUser = await this.userModel.findOne({
       _id: jwtUser.userId,
@@ -787,7 +787,7 @@ export class UsersService {
 
     try {
       await this.mailerServive.sendSoftDeleteConfirmationEmail(
-        existingUser.email,
+        useRecoveryEmail ? (existingUser.recoveryEmail ? existingUser.recoveryEmail : existingUser.email) : existingUser.email,
         `${existingUser.firstName} ${existingUser.lastName}`,
         code,
       );
@@ -798,13 +798,13 @@ export class UsersService {
     return {
       message: 'otp_sent_success',
       user: {
-        email: existingUser.email,
+        email: useRecoveryEmail ? (existingUser.recoveryEmail ? existingUser.recoveryEmail : existingUser.email) : existingUser.email,
       }
     };
 
   }
 
-  async verifySoftDeleteUser(deleteUserDto: DeleteUserDto, token: string, request: any) {
+  async verifySoftDeleteUser(deleteUserDto: DeleteUserDto, token: string, request: any, useRecoveryEmail: boolean = false) {
     const keepData: boolean = request.query.keep_data || false;
 
     const jwtUser = await this.authService.decodeJWT(token);
@@ -877,7 +877,7 @@ export class UsersService {
 
     try {
       await this.mailerServive.sendSoftDeletedSuccessEmail(
-        existingUser.email,
+        useRecoveryEmail ? (existingUser.recoveryEmail ? existingUser.recoveryEmail : existingUser.email) : existingUser.email,
         `${existingUser.firstName} ${existingUser.lastName}`,
       );
     } catch (er) {
@@ -892,13 +892,13 @@ export class UsersService {
     };
   }
 
-  async sendResetPasswordRequest(resetPasswordRequestDto: ResetPasswordRequestDto) {
+  async sendResetPasswordRequest(resetPasswordRequestDto: ResetPasswordRequestDto, useRecoveryEmail: boolean = false) {
 
     const existingUser = await this.userModel.findOne({
-      email: resetPasswordRequestDto.email,
-      softDeleted: false,
-      isBlockedByAdmin: false,
-    }).exec();
+        email: resetPasswordRequestDto.email,
+        softDeleted: false,
+        isBlockedByAdmin: false,
+      }).exec();
 
     if (!existingUser) {
       throw new HttpException(
@@ -933,7 +933,7 @@ export class UsersService {
 
     try {
       await this.mailerServive.sendResetPasswordCodeEmail(
-        existingUser.email,
+        useRecoveryEmail ? (existingUser.recoveryEmail ? existingUser.recoveryEmail : existingUser.email) : existingUser.email,
         `${existingUser.firstName} ${existingUser.lastName}`,
         code,
       );
@@ -944,7 +944,7 @@ export class UsersService {
     return {
       message: 'OTP for reseting password sent successfully',
       user: {
-        email: existingUser.email,
+        email: useRecoveryEmail ? (existingUser.recoveryEmail ? existingUser.recoveryEmail : existingUser.email) : existingUser.email,
       }
     };
   }

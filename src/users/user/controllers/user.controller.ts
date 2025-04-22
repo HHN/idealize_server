@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UsePipes, ValidationPipe, Headers, Put, UseGuards, Get, Param, Delete, Patch, Req } from '@nestjs/common';
+import { Controller, Post, Body, UsePipes, ValidationPipe, Headers, Put, UseGuards, Get, Param, Delete, Patch, Req, Query } from '@nestjs/common';
 import { UsersService } from '../services/user.service';
 import { CreateUserDto } from '../dtos/create-user.dto';
 import { User } from '../schemas/user.schema';
@@ -122,8 +122,11 @@ export class UsersController {
   @ApiBearerAuth('JWT-auth')
   @UseGuards(JwtAuthGuard)
   @UsePipes(new ValidationPipe({ transform: true }))
-  async softDeleteRequest(@Headers('Authorization') token: string): Promise<any> {
-    return this.usersService.softDeleteUserRequest(token);
+  async softDeleteRequest(
+    @Headers('Authorization') token: string,
+    @Query('useRecoveryEmail') useRecoveryEmail: boolean,
+  ): Promise<any> {
+    return this.usersService.softDeleteUserRequest(token, useRecoveryEmail || false);
   }
 
   @Delete('soft-anonymized-delete-request')
@@ -135,8 +138,11 @@ export class UsersController {
   @ApiBearerAuth('JWT-auth')
   @UseGuards(JwtAuthGuard)
   @UsePipes(new ValidationPipe({ transform: true }))
-  async softAnonymizedDeleteRequest(@Headers('Authorization') token: string): Promise<any> {
-    return this.usersService.softAnonymizedDeleteUserRequest(token);
+  async softAnonymizedDeleteRequest(
+    @Headers('Authorization') token: string,
+    @Query('useRecoveryEmail') useRecoveryEmail: boolean,
+  ): Promise<any> {
+    return this.usersService.softAnonymizedDeleteUserRequest(token, useRecoveryEmail || false);
   }
 
   @Delete('soft-keepdata-delete-request')
@@ -148,8 +154,11 @@ export class UsersController {
   @ApiBearerAuth('JWT-auth')
   @UseGuards(JwtAuthGuard)
   @UsePipes(new ValidationPipe({ transform: true }))
-  async softKeepDataDeleteRequest(@Headers('Authorization') token: string): Promise<any> {
-    return this.usersService.softKeepDataDeleteUserRequest(token);
+  async softKeepDataDeleteRequest(
+    @Headers('Authorization') token: string,
+    @Query('useRecoveryEmail') useRecoveryEmail: boolean,
+  ): Promise<any> {
+    return this.usersService.softKeepDataDeleteUserRequest(token, useRecoveryEmail || false);
   }
 
   @Delete('verify-soft-delete')
@@ -165,9 +174,10 @@ export class UsersController {
   async verifySoftDeleteRequest(
     @Body() deleteUserDto: DeleteUserDto,
     @Headers('Authorization') token: string,
-    @Req() request: any
+    @Req() request: any,
+    @Query('useRecoveryEmail') useRecoveryEmail: boolean,
   ): Promise<any> {
-    return this.usersService.verifySoftDeleteUser(deleteUserDto, token, request);
+    return this.usersService.verifySoftDeleteUser(deleteUserDto, token, request, useRecoveryEmail || false);
   }
 
   @Post('reset-password')
@@ -179,8 +189,9 @@ export class UsersController {
   @UsePipes(new ValidationPipe({ transform: true }))
   async resetPasswordRequest(
     @Body() resetPasswordRequestDto: ResetPasswordRequestDto,
+    @Query('useRecoveryEmail') useRecoveryEmail: boolean,
   ): Promise<any> {
-    return this.usersService.sendResetPasswordRequest(resetPasswordRequestDto);
+    return this.usersService.sendResetPasswordRequest(resetPasswordRequestDto, useRecoveryEmail || false);
   }
 
   @Post('reset-password-verify')
