@@ -16,6 +16,13 @@ export class CreateUserDto {
   @IsEmail()
   @Transform(({ value }) => value.toLowerCase())
   readonly email: string;
+
+  @ApiProperty()
+  @IsOptional()
+  @IsEmail()
+  @Transform(({ value }) => value.toLowerCase())
+  readonly recoveryEmail: string;
+
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
