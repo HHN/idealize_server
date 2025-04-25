@@ -9,9 +9,9 @@ import { CreateSurveyDto } from './shared/dtos/create-survey.dto';
 export class AppController {
   constructor(private readonly appService: AppService) { }
 
-  @Get('hello-world')
+  @Get('health')
   getHello(): string {
-    return this.appService.getHello();
+    return this.appService.getHealthCheck();
   }
 
   @Post('request-test-account')
