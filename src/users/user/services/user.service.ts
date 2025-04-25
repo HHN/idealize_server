@@ -580,7 +580,8 @@ export class UsersService {
       interestedTags: updateUserDto.interestedTags,
       studyPrograms: updateUserDto.studyPrograms,
       username: updateUserDto.username,
-      profilePicture: updateUserDto.profilePicture
+      profilePicture: updateUserDto.profilePicture,
+      recoveryEmail: updateUserDto.recoveryEmail,
     });
 
     return await this.userModel.findById(jwtUser.userId)
