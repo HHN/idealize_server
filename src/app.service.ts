@@ -20,8 +20,8 @@ export class AppService {
     @InjectModel(Survey.name) private surveyModel: Model<SurveyDocument>,
   ) { }
 
-  getHello(): string {
-    return 'Hello World!';
+  getHealthCheck(): string {
+    return 'OK - Health Check Passed';
   }
 
   async requestTestAccount(createReqIosAccessDto: CreateReqIosAccessDto) {
