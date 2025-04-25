@@ -70,8 +70,8 @@ async function bootstrap() {
       'http://localhost:8080',
       'http://flutter-web-app',
       'https://flutter-web-app',
-      'http://admin.campusconnects.de',
-      'https://admin.campusconnects.de',
+      'http://admin-dev.campusconnects.de',
+      'https://admin-dev.campusconnects.de',
       'https://landing.campusconnects.de'
     ],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
