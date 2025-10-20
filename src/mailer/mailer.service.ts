@@ -42,7 +42,7 @@ export class MailerService {
                 text: 'Your bug report is under review',
                 html,
             });
-            this.logger.log(`Email sent to ${to}: ${response.message}`);
+            // this.logger.log(`Email sent to ${to}: ${response.message}`);
         } catch (error) {
             this.logger.error(`Failed to send email to ${to}: ${error.message}`);
         }
@@ -64,7 +64,7 @@ export class MailerService {
                 text: `Your verification code is: ${code}`,
                 html,
             });
-            this.logger.log(`Email sent to ${to}: ${response.message}`);
+            // this.logger.log(`Email sent to ${to}: ${response.message}`);
         } catch (error) {
             this.logger.error(`Failed to send email to ${to}: ${error.message}`);
         }
@@ -84,7 +84,7 @@ export class MailerService {
                 text: `Your account has been deleted successfully`,
                 html,
             });
-            this.logger.log(`Email sent to ${to}: ${response.message}`);
+            // this.logger.log(`Email sent to ${to}: ${response.message}`);
         } catch (error) {
             this.logger.error(`Failed to send email to ${to}: ${error.message}`);
         }
@@ -106,7 +106,7 @@ export class MailerService {
                 text: `Your delete verification code is: ${code}`,
                 html,
             });
-            this.logger.log(`Email sent to ${to}: ${response.message}`);
+            // this.logger.log(`Email sent to ${to}: ${response.message}`);
         } catch (error) {
             this.logger.error(`Failed to send email to ${to}: ${error.message}`);
         }
@@ -128,7 +128,7 @@ export class MailerService {
                 text: `Your reset password code is: ${code}`,
                 html,
             });
-            this.logger.log(`Email sent to ${to}: ${response.message}`);
+            // this.logger.log(`Email sent to ${to}: ${response.message}`);
         } catch (error) {
             this.logger.error(`Failed to send email to ${to}: ${error.message}`);
         }
@@ -149,7 +149,7 @@ export class MailerService {
                 text: 'Your password has been reset successfully',
                 html,
             });
-            this.logger.log(`Email sent to ${to}: ${response.message}`);
+            // this.logger.log(`Email sent to ${to}: ${response.message}`);
         } catch (error) {
             this.logger.error(`Failed to send email to ${to}: ${error.message}`);
         }
@@ -169,7 +169,7 @@ export class MailerService {
                 text: `Welcome to Idealize ${name}`,
                 html,
             });
-            this.logger.log(`Email sent to ${to}: ${response.message}`);
+            // this.logger.log(`Email sent to ${to}: ${response.message}`);
         } catch (error) {
             console.log(error);
             this.logger.error(`Failed to send email to ${to}: ${error.message}`);
