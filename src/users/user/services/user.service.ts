@@ -227,12 +227,19 @@ export class UsersService {
           path: 'studyPrograms',
           populate: { path: 'user', select: '_id firstName lastName email userType' }
         })
+        // TODO Sh: PACKAGE UPDATE FIX - Mongoose 8.19.1 Type Issue
+        // Changed from: ...updatedUser.toJSON() to: .lean()
+        // Reason: Mongoose 8.19.1 has stricter TypeScript types causing "union type too complex" 
+        // errors with complex populated queries when using .toJSON() with spread operator
+        // Solution: Use .lean() to get plain JS object directly from query
+        // @ts-ignore - Suppress TS2590: Expression produces a union type that is too complex to represent
+        .lean()
         .exec();
 
       return {
         token: token,
         refreshToken: refreshToken,
-        ...updatedUser.toJSON(),
+        ...updatedUser,
       };
 
     } else {
@@ -326,12 +333,15 @@ export class UsersService {
           populate: { path: 'user', select: '_id firstName lastName email userType' }
         })
         .select('+profilePicture')
+        // TODO Shayan: PACKAGE UPDATE FIX - Mongoose 8.19.1 Type Issue (same as above)
+        // @ts-ignore - Suppress TS2590: Expression produces a union type that is too complex to represent
+        .lean()
         .exec();
 
       return {
         token: newToken,
         refreshToken: newRefreshToken,
-        ...userData.toJSON(),
+        ...userData,
       };
 
     } else {
@@ -455,12 +465,15 @@ export class UsersService {
           path: 'studyPrograms',
           populate: { path: 'user', select: '_id firstName lastName email userType' }
         })
+        // TODO Shayan: PACKAGE UPDATE FIX - Mongoose 8.19.1 Type Issue (same as above)
+        // @ts-ignore - Suppress TS2590: Expression produces a union type that is too complex to represent
+        .lean()
         .exec();
 
       return {
         token,
         refreshToken,
-        ...updatedUser.toJSON(),
+        ...updatedUser,
       };
 
     } else {

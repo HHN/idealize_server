@@ -19,9 +19,10 @@ async function bootstrap() {
     dotenv.config({ path: 'production.env' });
   } else {
     if (process.env.NODE_ENV === 'development') {
-      dotenv.config({ path: 'development.env' });
+
+      dotenv.config({ path: 'config/env/development.env' });
     } else {
-      dotenv.config({ path: 'staging.env' });
+      dotenv.config({ path: 'config/env/staging.env' });
     }
   }
 
