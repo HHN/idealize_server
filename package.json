@@ -7,7 +7,7 @@
   "license": "UNLICENSED",
   "scripts": {
     "prebuild": "node -e \"const fs = require('fs'); if (!fs.existsSync('uploads')) { fs.mkdirSync('uploads'); }\"",
-    "build": "nest build && mkdir -p dist/config/env && cp config/env/staging.env dist/config/env/staging.env",
+    "build": "nest build && node -e \"const fs = require('fs'); const path = require('path'); if (!fs.existsSync('dist/config/env')) { fs.mkdirSync('dist/config/env', {recursive: true}); } fs.copyFileSync('config/env/staging.env', 'dist/config/env/staging.env');\"",
     "postbuild": "ncp uploads dist/uploads",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
