@@ -30,16 +30,20 @@ export class ChatGateway
         @MessageBody() payload: { message: string },
     ): Promise<void> {
         try {
+            this.logger.log(`Received message from ${client.id}: "${payload.message}"`);
             // The user information should already be available in the request due to the guard
             const user = client.handshake.auth.user; // Assuming the user data is attached by the guard
 
             // Send the user's message to the Python chatbot service
+            this.logger.log(`Calling chatbot endpoint...`);
             const botResponse = await this.chatService.sendMessageToBot(payload.message);
+            this.logger.log(`Got response from Python chatbot`);
 
             // Emit the bot's response back to the user
             client.emit('receiveMessage', { message: botResponse });
+            this.logger.log(`Sent response back to client ${client.id}`);
         } catch (error) {
-            this.logger.error(error);
+            this.logger.error(`Error in handleMessage:`, error);
             client.emit('error', 'Failed to communicate with chatbot');
         }
     }
