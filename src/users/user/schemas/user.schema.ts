@@ -28,6 +28,9 @@ export class User {
 
     @Prop({ type: String, required: true })
     userType: 'student' | 'lecturer';
+    // TODO Shayan : Implement email validation against institution domains
+    @Prop({ type: String, required: false, trim: true })
+    institution?: string;
 
     @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'Upload', required: false })
     profilePicture: Types.ObjectId;

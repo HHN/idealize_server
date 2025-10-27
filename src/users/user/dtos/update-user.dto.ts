@@ -27,6 +27,11 @@ export class UpdateUserDto {
     @IsOptional()
     @IsString()
     readonly profilePicture: string;
+    /// TODO Shayan : Implement email validation against institution domains
+    @ApiProperty({ required: false, example: 'HHN - Hochschule Heilbronn' })
+    @IsOptional()
+    @IsString()
+    readonly institution?: string;
     @IsOptional()
     @ApiProperty({ required: false })
     @IsArray()
