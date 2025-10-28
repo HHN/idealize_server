@@ -1,16 +1,112 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="de">
 <head>
-    <title>Verify Your Account</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verifizierung Ihres CampusConnect-Kontos</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .header {
+            background-color: #0066cc;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 5px 5px 0 0;
+        }
+        .content {
+            background-color: #ffffff;
+            padding: 30px;
+            border-left: 1px solid #ddd;
+            border-right: 1px solid #ddd;
+        }
+        .code-box {
+            background-color: #f8f9fa;
+            border: 2px dashed #0066cc;
+            padding: 20px;
+            text-align: center;
+            font-size: 32px;
+            font-weight: bold;
+            letter-spacing: 5px;
+            color: #0066cc;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        .footer {
+            background-color: #f1f1f1;
+            padding: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+            border-radius: 0 0 5px 5px;
+            border: 1px solid #ddd;
+        }
+        .warning {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 12px;
+            margin: 15px 0;
+            border-radius: 3px;
+        }
+        a {
+            color: #0066cc;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
 </head>
-
 <body>
-    <h1>Welcome to Idealize App</h1>
-    <p>Hello {{name}},</p>
-    <p>Please confirm your email by using the following verification code:</p>
-    <h2>{{code}}</h2>
-    <p>Thank you for joining us!</p>
+    <div class="header">
+        <h1 style="margin: 0;">🎓 IdeaLize</h1>
+        <p style="margin: 5px 0 0 0;">Hochschule Heilbronn</p>
+    </div>
+    
+    <div class="content">
+        <h2>Hallo {{name}},</h2>
+        
+        <p>vielen Dank für Ihre Registrierung bei <strong>IdeaLize</strong>, der Plattform für innovative Projekte und Zusammenarbeit.</p>
+        
+        <p>Bitte bestätigen Sie Ihre E-Mail-Adresse mit dem folgenden Verifizierungscode:</p>
+        
+        <div class="code-box">
+            {{code}}
+        </div>
+        
+        <p><strong>⏱️ Der Code ist 5 Minuten gültig.</strong></p>
+        
+        <div class="warning">
+            <strong>⚠️ Sicherheitshinweis:</strong> Falls Sie sich nicht bei IdeaLize registriert haben, ignorieren Sie diese E-Mail bitte. Ihr Konto wird nicht erstellt, wenn Sie den Code nicht eingeben.
+        </div>
+        
+        <p>Bei Fragen wenden Sie sich bitte an: <a href="mailto:idealize@hs-heilbronn.de">idealize@hs-heilbronn.de</a></p>
+        
+        <p>Mit freundlichen Grüßen<br>
+        <strong>Ihr IdeaLize-Team</strong><br>
+        Hochschule Heilbronn</p>
+    </div>
+    
+    <div class="footer">
+        <p><strong>IdeaLize</strong> - Ein Projekt der Hochschule Heilbronn<br>
+        Max-Planck-Straße 39, 74081 Heilbronn</p>
+        
+        <p style="margin-top: 15px;">
+            <a href="https://landing.campusconnects.de/privacy-policy.htm">Datenschutz</a> | 
+            <a href="https://landing.campusconnects.de/terms-conditions.htm">AGB</a> |
+            <a href="https://landing.campusconnects.de/index.htm">Website</a>
+        </p>
+        
+        <p style="margin-top: 15px; color: #999; font-size: 11px;">
+            Diese E-Mail wurde automatisch generiert. Bitte antworten Sie nicht direkt auf diese Nachricht.
+        </p>
+    </div>
 </body>
-
 </html>

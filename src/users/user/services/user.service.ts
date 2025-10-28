@@ -27,14 +27,15 @@ export class UsersService {
 
   /// TODO Shayan : Implement email validation against institution domains
   private validateEmailMatchesInstitution(email: string, institution: string): void {
-    // Define institution email domains (same as mobile app)
+    // Define institution email domains
+   
     const institutionDomains: Record<string, string[]> = {
       'HHN - Hochschule Heilbronn': ['hs-heilbronn.de', 'stud.hs-heilbronn.de'],
-      'IPAI': ['ipai.de', 'stud.ipai.de'],
-      'Technische Universität München (TUM)': ['tum.de', 'stud.tum.de'],
+      'IPAI': ['ip.ai'], 
+      'Technische Universität München (TUM)': ['tum.de'], 
       'Heilbronn 42': ['42heilbronn.de', 'stud.42heilbronn.de'],
-      'DHBW': ['dhbw.de', 'stud.dhbw.de'],
-      'Fraunhofer ISI': ['isi.fraunhofer.de', 'stud.isi.fraunhofer.de'],
+      'DHBW': ['dhbw.de'], 
+      'Fraunhofer ISI': ['isi.fraunhofer.de'], 
       'Fraunhofer IAO': ['iao.fraunhofer.de', 'stud.iao.fraunhofer.de'],
     };
 

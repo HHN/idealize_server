@@ -60,9 +60,16 @@ export class MailerService {
             const response = await this.mailgunClient.messages.create(domain, {
                 from,
                 to: [to],
-                subject: 'Verify your account',
-                text: `Your verification code is: ${code}`,
+                subject: 'Ihr Verifizierungscode für IdeaLize',
+                text: `Ihr Verifizierungscode ist: ${code}`,
                 html,
+                'o:tracking': 'no',
+                'o:tracking-clicks': 'no',
+                'o:tracking-opens': 'no',
+                'o:tag': ['verification', 'transactional'],
+                'o:dkim': 'yes',
+                'h:Reply-To': 'idealize@hs-heilbronn.de',
+                'h:X-Mailgun-Variables': JSON.stringify({ type: 'verification' }),
             });
             // this.logger.log(`Email sent to ${to}: ${response.message}`);
         } catch (error) {
@@ -80,9 +87,16 @@ export class MailerService {
             const response = await this.mailgunClient.messages.create(domain, {
                 from,
                 to: [to],
-                subject: 'Account deleted successfully',
-                text: `Your account has been deleted successfully`,
+                subject: 'Konto erfolgreich gelöscht - IdeaLize',
+                text: `Ihr Konto wurde erfolgreich gelöscht`,
                 html,
+                'o:tracking': 'no',
+                'o:tracking-clicks': 'no',
+                'o:tracking-opens': 'no',
+                'o:tag': ['account-deleted', 'transactional'],
+                'o:dkim': 'yes',
+                'h:Reply-To': 'idealize@hs-heilbronn.de',
+                'h:X-Mailgun-Variables': JSON.stringify({ type: 'account-deleted' }),
             });
             // this.logger.log(`Email sent to ${to}: ${response.message}`);
         } catch (error) {
@@ -102,9 +116,16 @@ export class MailerService {
             const response = await this.mailgunClient.messages.create(domain, {
                 from,
                 to: [to],
-                subject: 'Delete your account',
-                text: `Your delete verification code is: ${code}`,
+                subject: 'Konto löschen - IdeaLize',
+                text: `Ihr Code zum Löschen des Kontos ist: ${code}`,
                 html,
+                'o:tracking': 'no',
+                'o:tracking-clicks': 'no',
+                'o:tracking-opens': 'no',
+                'o:tag': ['account-delete', 'transactional'],
+                'o:dkim': 'yes',
+                'h:Reply-To': 'idealize@hs-heilbronn.de',
+                'h:X-Mailgun-Variables': JSON.stringify({ type: 'account-delete' }),
             });
             // this.logger.log(`Email sent to ${to}: ${response.message}`);
         } catch (error) {
@@ -124,9 +145,16 @@ export class MailerService {
             const response = await this.mailgunClient.messages.create(domain, {
                 from,
                 to: [to],
-                subject: 'Reset your password',
-                text: `Your reset password code is: ${code}`,
+                subject: 'Passwort zurücksetzen - IdeaLize',
+                text: `Ihr Code zum Zurücksetzen des Passworts ist: ${code}`,
                 html,
+                'o:tracking': 'no',
+                'o:tracking-clicks': 'no',
+                'o:tracking-opens': 'no',
+                'o:tag': ['password-reset', 'transactional'],
+                'o:dkim': 'yes',
+                'h:Reply-To': 'idealize@hs-heilbronn.de',
+                'h:X-Mailgun-Variables': JSON.stringify({ type: 'password-reset' }),
             });
             // this.logger.log(`Email sent to ${to}: ${response.message}`);
         } catch (error) {
@@ -145,9 +173,16 @@ export class MailerService {
             const response = await this.mailgunClient.messages.create(domain, {
                 from,
                 to: [to],
-                subject: 'Password reset successfully',
-                text: 'Your password has been reset successfully',
+                subject: 'Passwort erfolgreich zurückgesetzt - IdeaLize',
+                text: 'Ihr Passwort wurde erfolgreich zurückgesetzt',
                 html,
+                'o:tracking': 'no',
+                'o:tracking-clicks': 'no',
+                'o:tracking-opens': 'no',
+                'o:tag': ['password-reset-success', 'transactional'],
+                'o:dkim': 'yes',
+                'h:Reply-To': 'idealize@hs-heilbronn.de',
+                'h:X-Mailgun-Variables': JSON.stringify({ type: 'password-reset-success' }),
             });
             // this.logger.log(`Email sent to ${to}: ${response.message}`);
         } catch (error) {
@@ -165,9 +200,16 @@ export class MailerService {
             const response = await this.mailgunClient.messages.create(domain, {
                 from,
                 to: [to],
-                subject: 'Welcome to Idealize',
-                text: `Welcome to Idealize ${name}`,
+                subject: 'Willkommen bei IdeaLize',
+                text: `Willkommen bei IdeaLize ${name}`,
                 html,
+                'o:tracking': 'no',
+                'o:tracking-clicks': 'no',
+                'o:tracking-opens': 'no',
+                'o:tag': ['welcome', 'transactional'],
+                'o:dkim': 'yes',
+                'h:Reply-To': 'idealize@hs-heilbronn.de',
+                'h:X-Mailgun-Variables': JSON.stringify({ type: 'welcome' }),
             });
             // this.logger.log(`Email sent to ${to}: ${response.message}`);
         } catch (error) {
