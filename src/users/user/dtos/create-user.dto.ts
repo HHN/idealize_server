@@ -36,6 +36,11 @@ export class CreateUserDto {
   @IsNotEmpty()
   @Transform(({ value }) => value.toLowerCase())
   readonly userType: 'student' | 'lecturer';
+  /// TODO Shayan : Implement email validation against institution domains
+  @IsOptional()
+  @ApiProperty({ required: false, example: 'HHN - Hochschule Heilbronn' })
+  @IsString()
+  readonly institution?: string;
   @IsOptional()
   @ApiProperty({ required: false })
   @IsString()

@@ -24,16 +24,50 @@ export class UsersService {
     @InjectModel(Project.name) private projectModel: Model<ProjectDocument>,
   ) { }
 
-  async create(createUserDto: CreateUserDto): Promise<any> {
-    if (!createUserDto.email.endsWith('@hs-heilbronn.de') && !createUserDto.email.endsWith('@stud.hs-heilbronn.de')) {
+
+  /// TODO Shayan : Implement email validation against institution domains
+  private validateEmailMatchesInstitution(email: string, institution: string): void {
+    // Define institution email domains
+   
+    const institutionDomains: Record<string, string[]> = {
+      'HHN - Hochschule Heilbronn': ['hs-heilbronn.de', 'stud.hs-heilbronn.de'],
+      'IPAI': ['ip.ai'], 
+      'Technische Universität München (TUM)': ['tum.de'], 
+      'Heilbronn 42': ['42heilbronn.de', 'stud.42heilbronn.de'],
+      'DHBW': ['dhbw.de'], 
+      'Fraunhofer ISI': ['isi.fraunhofer.de'], 
+      'Fraunhofer IAO': ['iao.fraunhofer.de', 'stud.iao.fraunhofer.de'],
+    };
+
+    // Get allowed domains for selected institution
+    const allowedDomains = institutionDomains[institution];
+
+    // If institution not found in mapping, allow any email (backward compatibility)
+    if (!allowedDomains) {
+      return;
+    }
+
+    // Extract domain from email
+    const emailDomain = email.split('@')[1];
+
+    // Check if email domain matches institution
+    if (!allowedDomains.includes(emailDomain)) {
+      const allowedDomainsString = allowedDomains.map(d => `@${d}`).join(' or ');
       throw new HttpException(
         {
           status: HttpStatus.BAD_REQUEST,
           error: 'Invalid email',
-          message: 'The email provided is not valid, please use your email from hs-heilbronn.de or stud.hs-heilbronn.de',
+          message: `The email provided is not valid, please use your email from ${allowedDomainsString}`,
         },
         HttpStatus.BAD_REQUEST,
       );
+    }
+  }
+
+  async create(createUserDto: CreateUserDto): Promise<any> {
+    // Validate email matches institution if institution is provided
+    if (createUserDto.institution) {
+      this.validateEmailMatchesInstitution(createUserDto.email, createUserDto.institution);
     }
 
     // first check if the user already exists
@@ -227,12 +261,19 @@ export class UsersService {
           path: 'studyPrograms',
           populate: { path: 'user', select: '_id firstName lastName email userType' }
         })
+        // TODO Sh: PACKAGE UPDATE FIX - Mongoose 8.19.1 Type Issue
+        // Changed from: ...updatedUser.toJSON() to: .lean()
+        // Reason: Mongoose 8.19.1 has stricter TypeScript types causing "union type too complex" 
+        // errors with complex populated queries when using .toJSON() with spread operator
+        // Solution: Use .lean() to get plain JS object directly from query
+        // @ts-ignore - Suppress TS2590: Expression produces a union type that is too complex to represent
+        .lean()
         .exec();
 
       return {
         token: token,
         refreshToken: refreshToken,
-        ...updatedUser.toJSON(),
+        ...updatedUser,
       };
 
     } else {
@@ -326,12 +367,15 @@ export class UsersService {
           populate: { path: 'user', select: '_id firstName lastName email userType' }
         })
         .select('+profilePicture')
+        // TODO Shayan: PACKAGE UPDATE FIX - Mongoose 8.19.1 Type Issue (same as above)
+        // @ts-ignore - Suppress TS2590: Expression produces a union type that is too complex to represent
+        .lean()
         .exec();
 
       return {
         token: newToken,
         refreshToken: newRefreshToken,
-        ...userData.toJSON(),
+        ...userData,
       };
 
     } else {
@@ -455,12 +499,15 @@ export class UsersService {
           path: 'studyPrograms',
           populate: { path: 'user', select: '_id firstName lastName email userType' }
         })
+        // TODO Shayan: PACKAGE UPDATE FIX - Mongoose 8.19.1 Type Issue (same as above)
+        // @ts-ignore - Suppress TS2590: Expression produces a union type that is too complex to represent
+        .lean()
         .exec();
 
       return {
         token,
         refreshToken,
-        ...updatedUser.toJSON(),
+        ...updatedUser,
       };
 
     } else {

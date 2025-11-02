@@ -54,19 +54,22 @@ export class AdminService {
         const token = await this.authService.generateToken(createdUser._id.toString(), false, true);
         const refreshToken = await this.authService.generateToken(createdUser._id.toString(), true, true);
 
-        const updatedUser = await this.adminModel
+        // TODO Sh: PACKAGE UPDATE FIX - Mongoose 8.19.1 Type Issue
+        // Changed from: ...updatedUser.toJSON() to: .lean() + Object.assign
+        // Reason: Mongoose 8.19.1 has stricter TypeScript types that cause "union type too complex" 
+        // errors when chaining .select().toJSON() with spread operator
+        // Solution: Use .lean() to get plain JS object instead of toJSON()
+        // @ts-ignore - Suppress TS2590: Expression produces a union type that is too complex to represent
+        const query: any = this.adminModel
             .findByIdAndUpdate(createdUser._id,
                 { status: true },
                 { new: true }
             )
             .select('-password');
+        
+        const updatedUser = await query.lean().exec();
 
-
-        return {
-            token,
-            refreshToken,
-            ...updatedUser.toJSON()
-        };
+        return Object.assign({}, updatedUser, { token, refreshToken });
     }
 
     async login(user: LoginAdminDto): Promise<any> {
@@ -103,14 +106,19 @@ export class AdminService {
 
         const token = await this.authService.generateToken(existingUser._id.toString(), false, true);
         const refreshToken = await this.authService.generateToken(existingUser._id.toString(), true, true);
-        const updatedUser = await this.adminModel
+        
+        // TODO Shayan: PACKAGE UPDATE FIX - Mongoose 8.19.1 Type Issue (same as above)
+        // @ts-ignore - Suppress TS2590: Expression produces a union type that is too complex to represent
+        const updatedUser: any = await this.adminModel
             .findByIdAndUpdate(existingUser._id, { token, refreshToken }, { new: true })
-            .select('-password');
+            .select('-password')
+            .lean()
+            .exec();
 
         return {
             token,
             refreshToken,
-            ...updatedUser.toJSON()
+            ...updatedUser
         };
     }
 
@@ -141,14 +149,17 @@ export class AdminService {
             const newToken = await this.authService.generateToken(existingUser._id.toString(), false, true,);
             const newRefreshToken = await this.authService.generateToken(existingUser._id.toString(), true, true,);
 
-            const userData = await this.adminModel
+            // TODO Shayan: PACKAGE UPDATE FIX - Mongoose 8.19.1 Type Issue (same as above)
+            // @ts-ignore - Suppress TS2590: Expression produces a union type that is too complex to represent
+            const userData: any = await this.adminModel
                 .findOne({ _id: existingUser._id })
+                .lean()
                 .exec();
 
             return {
                 token: newToken,
                 refreshToken: newRefreshToken,
-                ...userData.toJSON()
+                ...userData
             };
 
         } else {

@@ -1,15 +1,99 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="de">
 <head>
-    <title>Congradulation!</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Willkommen bei CampusConnect</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .header {
+            background-color: #28a745;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 5px 5px 0 0;
+        }
+        .content {
+            background-color: #ffffff;
+            padding: 30px;
+            border-left: 1px solid #ddd;
+            border-right: 1px solid #ddd;
+        }
+        .footer {
+            background-color: #f1f1f1;
+            padding: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+            border-radius: 0 0 5px 5px;
+            border: 1px solid #ddd;
+        }
+        .success-box {
+            background-color: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 3px;
+        }
+        a {
+            color: #0066cc;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
 </head>
-
 <body>
-    <h1>Congradulation!</h1>
-    <p>Hello {{name}},</p>
-    <p>Your account has been activated,</p>
-    <h2>Welcome to the Idealize</h2>
+    <div class="header">
+        <h1 style="margin: 0;">☑️ Herzlich Willkommen!</h1>
+        <p style="margin: 5px 0 0 0;">IdeaLize</p>
+    </div>
+    
+    <div class="content">
+        <h2>Hallo {{name}},</h2>
+        
+        <div class="success-box">
+            <strong>🎉 Glückwunsch!</strong> Ihr Konto wurde erfolgreich aktiviert.
+        </div>
+        
+        <p>Willkommen bei <strong>IdeaLize</strong> – der Plattform für innovative Projekte und Zusammenarbeit!</p>
+        
+        <p>Sie können jetzt:</p>
+        <ul>
+            <li>🚀 Innovative Projekte entdecken</li>
+            <li>🤝 Mit anderen zusammenarbeiten</li>
+            <li>💡 Ihre eigenen Ideen teilen</li>
+        </ul>
+        
+        <p>Starten Sie jetzt und werden Sie Teil unserer Community!</p>
+        
+        <p style="margin-top: 30px;">Mit freundlichen Grüßen<br>
+        <strong>Ihr IdeaLize-Team</strong><br>
+        Hochschule Heilbronn</p>
+    </div>
+    
+    <div class="footer">
+        <p><strong>IdeaLize</strong> - Ein Projekt der Hochschule Heilbronn<br>
+        Max-Planck-Straße 39, 74081 Heilbronn</p>
+        
+        <p style="margin-top: 15px;">
+            <a href="https://landing.campusconnects.de/privacy-policy.htm">Datenschutz</a> | 
+            <a href="https://landing.campusconnects.de/terms-conditions.htm">AGB</a> |
+            <a href="https://landing.campusconnects.de/index.htm">Website</a>
+        </p>
+        
+        <p style="margin-top: 15px; color: #999; font-size: 11px;">
+            Diese E-Mail wurde automatisch generiert. Bitte antworten Sie nicht direkt auf diese Nachricht.
+        </p>
+    </div>
 </body>
-
 </html>
