@@ -98,6 +98,10 @@ export class UsersService {
         // Store the verification code in hashed version
         existingUser.code = this.authService.hashPassword(code);
         existingUser.codeExpire = codeExpire;
+        // TODO is SH: Persist overview field if provided during re-registration
+        if (createUserDto.overview !== undefined) {
+          existingUser.overview = createUserDto.overview;
+        }
 
         await existingUser.save();
 
@@ -121,6 +125,7 @@ export class UsersService {
 
     }
 
+    // TODO is SH: Include overview in new user creation (Registration Step 3)
     // verification code
     const code = Math.floor(1000 + Math.random() * 9000).toString();
     // Expire code after 5 minutes
@@ -131,6 +136,7 @@ export class UsersService {
       code: this.authService.hashPassword(code),
       codeExpire: codeExpire,
       password: this.authService.hashPassword(createUserDto.password),
+      // TODO is SH: overview is already part of createUserDto, will be persisted automatically
     };
 
     const targetUser = new this.userModel(updatedCreatedUserDTO);
@@ -620,6 +626,7 @@ export class UsersService {
 
   async update(updateUserDto: UpdateUserDto, token: string): Promise<User> {
     const jwtUser = await this.authService.decodeJWT(token);
+    // TODO is SH: Include overview in profile update (Profile Settings)
     await this.userModel.findOneAndUpdate({ _id: jwtUser.userId, softDeleted: false, isBlockedByAdmin: false, }, {
       firstName: updateUserDto.firstName,
       lastName: updateUserDto.lastName,
@@ -629,6 +636,8 @@ export class UsersService {
       username: updateUserDto.username,
       profilePicture: updateUserDto.profilePicture,
       recoveryEmail: updateUserDto.recoveryEmail,
+      // TODO is SH: Allow updating overview via profile settings
+      ...(updateUserDto.overview !== undefined && { overview: updateUserDto.overview }),
     });
 
     return await this.userModel.findById(jwtUser.userId)
@@ -1047,6 +1056,7 @@ export class UsersService {
   }
 
   async editByAdmin(userId: string, updateUserByAdminDto: UpdateUserByAdminDto): Promise<User> {
+    // TODO is SH: Allow admin to update user overview
     return await this.userModel.findByIdAndUpdate(userId, updateUserByAdminDto).exec();
   }
 
@@ -1067,12 +1077,14 @@ export class UsersService {
 
     }
 
+    // TODO is SH: Include overview when admin creates users
     const updatedCreatedUserDTO = {
       ...createUserDto,
       password: this.authService.hashPassword(createUserDto.password),
       isBlockedByAdmin: false,
       softDeleted: false,
       status: false,
+      // TODO is SH: overview is already part of createUserDto if provided
     };
 
     const targetUser = new this.userModel(updatedCreatedUserDTO);
@@ -1090,7 +1102,9 @@ export class UsersService {
           status: targetUser.status,
           isBlockedByAdmin: targetUser.isBlockedByAdmin,
           softDeleted: targetUser.softDeleted,
-          userType: targetUser.userType
+          userType: targetUser.userType,
+          // TODO is SH: Return overview in admin create response
+          overview: targetUser.overview,
         }
       },
     };
