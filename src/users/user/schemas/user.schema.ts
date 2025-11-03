@@ -35,6 +35,11 @@ export class User {
     @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'Upload', required: false })
     profilePicture: Types.ObjectId;
 
+    // TODO is SH: Add overview field to store user bio/description (max 500 chars)
+    // This is optional and nullable, supporting Registration Step 3 and Profile Settings
+    @Prop({ required: false, type: String, maxlength: 500, default: null })
+    overview?: string;
+
     @Prop({ type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Tag' }], default: [] })
     interestedTags: Types.ObjectId[];
 

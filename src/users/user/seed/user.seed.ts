@@ -16,7 +16,8 @@ export const usersMock: User[] = [
         isBlockedByAdmin: false,
         status: true,
         code: null,
-        codeExpire: null, isMockData: true,
+    codeExpire: null, overview: null, //TODO SH: overview for schema compatibility
+    isMockData: true,
     },
     {
         firstName: 'Jane',
@@ -33,7 +34,8 @@ export const usersMock: User[] = [
         isBlockedByAdmin: false,
         status: true,
         code: null,
-        codeExpire: null, isMockData: true,
+    codeExpire: null, overview: null, //TODO SH: overview for schema compatibility
+    isMockData: true,
     },
     {
         firstName: 'Alice',
@@ -50,7 +52,8 @@ export const usersMock: User[] = [
         isBlockedByAdmin: false,
         status: true,
         code: null,
-        codeExpire: null, isMockData: true,
+    codeExpire: null, overview: null, //TODO SH: overview for schema compatibility
+    isMockData: true,
     },
     {
         firstName: 'Robert',
@@ -67,7 +70,8 @@ export const usersMock: User[] = [
         isBlockedByAdmin: false,
         status: true,
         code: null,
-        codeExpire: null, isMockData: true,
+    codeExpire: null, overview: null, //TODO SH: overview for schema compatibility
+    isMockData: true,
     },
     {
         firstName: 'Emily',
@@ -84,7 +88,8 @@ export const usersMock: User[] = [
         isBlockedByAdmin: false,
         status: true,
         code: null,
-        codeExpire: null, isMockData: true,
+    codeExpire: null, overview: null, //TODO SH: overview for schema compatibility
+    isMockData: true,
     },
     {
         firstName: 'Michael',
@@ -101,7 +106,8 @@ export const usersMock: User[] = [
         isBlockedByAdmin: false,
         status: true,
         code: null,
-        codeExpire: null, isMockData: true,
+    codeExpire: null, overview: null, //TODO SH: overview for schema compatibility
+    isMockData: true,
     },
     {
         firstName: 'Sarah',
@@ -118,7 +124,8 @@ export const usersMock: User[] = [
         isBlockedByAdmin: false,
         status: true,
         code: null,
-        codeExpire: null, isMockData: true,
+    codeExpire: null, overview: null, //TODO SH: overview for schema compatibility
+    isMockData: true,
     },
     {
         firstName: 'William',
@@ -135,7 +142,8 @@ export const usersMock: User[] = [
         isBlockedByAdmin: false,
         status: true,
         code: null,
-        codeExpire: null, isMockData: true,
+    codeExpire: null, overview: null, //TODO SH: overview for schema compatibility
+    isMockData: true,
     },
     {
         firstName: 'Sophia',
@@ -152,7 +160,8 @@ export const usersMock: User[] = [
         isBlockedByAdmin: false,
         status: true,
         code: null,
-        codeExpire: null, isMockData: true,
+    codeExpire: null, overview: null, //TODO SH: overview for schema compatibility
+    isMockData: true,
     },
     {
         firstName: 'James',
@@ -169,7 +178,8 @@ export const usersMock: User[] = [
         isBlockedByAdmin: false,
         status: true,
         code: null,
-        codeExpire: null, isMockData: true,
+    codeExpire: null, overview: null, //TODO SH: overview for schema compatibility
+    isMockData: true,
     },
     {
         firstName: 'Olivia',
@@ -186,7 +196,8 @@ export const usersMock: User[] = [
         isBlockedByAdmin: false,
         status: true,
         code: null,
-        codeExpire: null, isMockData: true,
+    codeExpire: null, overview: null, //TODO SH: overview for schema compatibility
+    isMockData: true,
     },
     {
         firstName: 'Daniel',
@@ -203,7 +214,8 @@ export const usersMock: User[] = [
         isBlockedByAdmin: false,
         status: true,
         code: null,
-        codeExpire: null, isMockData: true,
+    codeExpire: null, overview: null, //TODO SH: overview for schema compatibility
+    isMockData: true,
     },
     {
         firstName: 'Charlotte',
@@ -220,7 +232,8 @@ export const usersMock: User[] = [
         isBlockedByAdmin: false,
         status: true,
         code: null,
-        codeExpire: null, isMockData: true,
+    codeExpire: null, overview: null, //TODO SH: overview for schema compatibility
+    isMockData: true,
     },
     {
         firstName: 'Matthew',
@@ -237,7 +250,8 @@ export const usersMock: User[] = [
         isBlockedByAdmin: false,
         status: true,
         code: null,
-        codeExpire: null, isMockData: true,
+    codeExpire: null, overview: null, //TODO SH: overview for schema compatibility
+    isMockData: true,
     },
     {
         firstName: 'Amelia',
@@ -254,7 +268,8 @@ export const usersMock: User[] = [
         isBlockedByAdmin: false,
         status: true,
         code: null,
-        codeExpire: null, isMockData: true,
+    codeExpire: null, overview: null, //TODO SH: overview for schema compatibility
+    isMockData: true,
     },
     {
         firstName: 'Henry',
@@ -271,7 +286,8 @@ export const usersMock: User[] = [
         isBlockedByAdmin: false,
         status: true,
         code: null,
-        codeExpire: null, isMockData: true,
+    codeExpire: null, overview: null, //TODO SH: overview for schema compatibility
+    isMockData: true,
     },
     {
         firstName: 'Isabella',
@@ -288,7 +304,8 @@ export const usersMock: User[] = [
         isBlockedByAdmin: false,
         status: true,
         code: null,
-        codeExpire: null, isMockData: true,
+    codeExpire: null, overview: null, //TODO SH: overview for schema compatibility
+    isMockData: true,
     },
     {
         firstName: 'Alexander',
@@ -305,7 +322,8 @@ export const usersMock: User[] = [
         isBlockedByAdmin: false,
         status: true,
         code: null,
-        codeExpire: null, isMockData: true,
+    codeExpire: null, overview: null, //TODO SH: overview for schema compatibility
+    isMockData: true,
     },
     {
         firstName: 'Mia',
@@ -322,7 +340,8 @@ export const usersMock: User[] = [
         isBlockedByAdmin: false,
         status: true,
         code: null,
-        codeExpire: null, isMockData: true,
+    codeExpire: null, overview: null, //TODO SH: overview for schema compatibility
+    isMockData: true,
     },
     {
         firstName: 'Liam',

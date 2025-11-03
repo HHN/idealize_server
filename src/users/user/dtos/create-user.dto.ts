@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsArray, IsEmail, isNotEmpty, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsArray, IsEmail, isNotEmpty, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class CreateUserDto {
   @ApiProperty()
@@ -46,4 +46,17 @@ export class CreateUserDto {
   @IsString()
   @IsNotEmpty()
   readonly profilePicture: string;
+
+  // TODO is SH: Add overview field for user bio during registration (Step 3)
+  // Optional, max 500 chars, trimmed automatically via Transform
+  @ApiProperty({ 
+    required: false, 
+    description: 'User bio/overview (max 500 characters)',
+    maxLength: 500 
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500, { message: 'Overview must not exceed 500 characters' })
+  @Transform(({ value }) => value?.trim())
+  readonly overview?: string;
 }
