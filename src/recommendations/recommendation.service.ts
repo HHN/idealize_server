@@ -5,12 +5,14 @@ import { Project, ProjectDocument } from '../projects/project/schemas/project.sc
 import { User, UserDocument } from '../users/user/schemas/user.schema';
 import { LikeProject } from '../likes/like/schemas/like-project.schema';
 import { AuthService } from '../auth/auth.service';
+import { TagService } from '../tags/tag/services/tag.service';
 
 @Injectable()
 export class RecommendationService {
   constructor(
     @InjectModel('Project') private readonly projectModel: Model<ProjectDocument>,
     @InjectModel('User') private readonly userModel: Model<UserDocument>,
+    //@Injectable('TagService') private readonly tagService: TagService,
     @InjectModel('LikeProject') private readonly likeProjectModel: Model<LikeProject>,
     private readonly authService: AuthService,
   ) {}
@@ -25,7 +27,9 @@ export class RecommendationService {
   ): Promise<{ projects: any[]; total: number; algorithm: string }> {
     // Decode JWT to get user ID
     const jwtUser = await this.authService.decodeJWT(token);
+    console.log('🔍 DEBUG - Decoded JWT User:', jwtUser, 'toke: ', token);
     const userId = jwtUser.userId;
+    const userName = jwtUser.name;
 
     // Get user profile with interests
     const user = await this.userModel
@@ -38,8 +42,11 @@ export class RecommendationService {
       throw new Error('User not found');
     }
 
+    //const tags = await this.tagService
+
     // Debug: Log user interests
     console.log('🔍 DEBUG - User ID:', userId);
+    console.log('🔍 DEBUG - User Name:', user.username);
     console.log('🔍 DEBUG - User interestedTags:', user.interestedTags);
     console.log('🔍 DEBUG - User interestedCourses:', user.interestedCourses);
 
@@ -61,8 +68,8 @@ export class RecommendationService {
     const allProjects = await this.projectModel
       .find({
         isDraft: false,
-        owner: { $ne: new Types.ObjectId(userId) },
-        _id: { $nin: likedProjectIds.map(id => new Types.ObjectId(id)) },
+        // owner: { $ne: new Types.ObjectId(userId) },
+        // _id: { $nin: likedProjectIds.map(id => new Types.ObjectId(id)) },
       })
       .populate('tags')
       .populate('courses')
@@ -70,11 +77,11 @@ export class RecommendationService {
       .populate('thumbnail')
       .lean();
 
-    console.log('🔍 DEBUG - Total projects found:', allProjects.length);
-    console.log('🔍 DEBUG - First 3 projects tags:', allProjects.slice(0, 3).map(p => ({
-      title: (p as any).title,
-      tags: (p as any).tags.map((t: any) => t.name || t._id)
-    })));
+    // console.log('🔍 DEBUG - Total projects found:', allProjects.length);
+    // console.log('🔍 DEBUG - First 3 projects tags:', allProjects.slice(0, 3).map(p => ({
+    //   title: (p as any).title,
+    //   tags: (p as any).tags.map((t: any) => t.name || t._id)
+    // })));
 
     // Calculate scores for each project
     const projectsWithScores = allProjects.map(project => {
@@ -116,6 +123,7 @@ export class RecommendationService {
     const paginatedProjects = projectsWithScores.slice(skip, skip + limit);
     const total = projectsWithScores.length;
 
+    console.log('🔍 DEBUG - For you - content-based:', paginatedProjects);
     return {
       projects: paginatedProjects,
       total,
@@ -137,7 +145,7 @@ export class RecommendationService {
 
     // Get user profile with interests
     const user = await this.userModel
-      .findById(userId)
+      .findById(jwtUser.userId)
       .populate('interestedTags')
       .populate('interestedCourses')
       .lean();
@@ -162,8 +170,8 @@ export class RecommendationService {
     // Query projects that match user's interests
     const query: any = {
       isDraft: false,
-      owner: { $ne: new Types.ObjectId(userId) },
-      _id: { $nin: likedProjectIds.map(id => new Types.ObjectId(id)) },
+      // owner: { $ne: new Types.ObjectId(userId) },
+      // _id: { $nin: likedProjectIds.map(id => new Types.ObjectId(id)) },
       $or: [
         { tags: { $in: userTagIds } },
         { courses: { $in: userCourseIds } },
@@ -202,7 +210,7 @@ export class RecommendationService {
   ): Promise<{ projects: any[]; total: number; algorithm: string }> {
     // Get content-based recommendations (without pagination to calculate popularity)
     const contentBased = await this.getContentBasedRecommendations(token, 1, 100);
-
+    
     // Add popularity score based on likes
     const projectsWithPopularity = await Promise.all(
       contentBased.projects.map(async project => {
@@ -228,11 +236,13 @@ export class RecommendationService {
 
     // Sort by hybrid score
     projectsWithPopularity.sort((a, b) => b.recommendationScore - a.recommendationScore);
+    
 
     // Pagination
     const skip = (page - 1) * limit;
     const paginatedProjects = projectsWithPopularity.slice(skip, skip + limit);
     const total = projectsWithPopularity.length;
+    console.log('🔍 DEBUG - For you - Hyprid:', paginatedProjects);
 
     return {
       projects: paginatedProjects,
