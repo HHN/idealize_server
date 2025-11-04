@@ -5,6 +5,7 @@ import { RecommendationService } from './recommendation.service';
 import { ProjectSchema } from '../projects/project/schemas/project.schema';
 import { UserSchema } from '../users/user/schemas/user.schema';
 import { LikeProjectSchema } from '../likes/like/schemas/like-project.schema';
+import { RecommendationSchema } from './recommendation/schemas/recommendation.schema';
 import { AuthModule } from '../auth/auth.module';
 
 @Module({
@@ -13,6 +14,7 @@ import { AuthModule } from '../auth/auth.module';
       { name: 'Project', schema: ProjectSchema },
       { name: 'User', schema: UserSchema },
       { name: 'LikeProject', schema: LikeProjectSchema },
+      { name: 'Recommendation', schema: RecommendationSchema },
     ]),
     AuthModule,
   ],

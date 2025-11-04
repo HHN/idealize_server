@@ -4,6 +4,7 @@ import { Model, Types } from 'mongoose';
 import { Project, ProjectDocument } from '../projects/project/schemas/project.schema';
 import { User, UserDocument } from '../users/user/schemas/user.schema';
 import { LikeProject } from '../likes/like/schemas/like-project.schema';
+import { Recommendation, RecommendationDocument } from './recommendation/schemas/recommendation.schema';
 import { AuthService } from '../auth/auth.service';
 import { TagService } from '../tags/tag/services/tag.service';
 
@@ -14,6 +15,7 @@ export class RecommendationService {
     @InjectModel('User') private readonly userModel: Model<UserDocument>,
     //@Injectable('TagService') private readonly tagService: TagService,
     @InjectModel('LikeProject') private readonly likeProjectModel: Model<LikeProject>,
+    @InjectModel('Recommendation') private readonly recommendationModel: Model<RecommendationDocument>,
     private readonly authService: AuthService,
   ) {}
 
@@ -250,4 +252,185 @@ export class RecommendationService {
       algorithm: 'hybrid',
     };
   }
+
+  // ============================================================
+  // NEW METHODS: Store recommendations in MongoDB
+  // ============================================================
+
+  /**
+   * Saves calculated recommendations to the database
+   * @param userId - User ID for whom the recommendations are
+   * @param projects - Array of projects with scores
+   * @param algorithm - Which algorithm was used
+   */
+  async saveRecommendationsToDatabase(
+    userId: string,
+    projects: any[],
+    algorithm: string,
+  ): Promise<void> {
+    // Expiration date: 24 hours from now
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 24);
+
+    // Create Recommendation Documents
+    const recommendations = projects.map(project => {
+      // Find matching tags between user and project
+      const matchingTags = project.tags
+        ? project.tags.map((tag: any) => tag._id)
+        : [];
+
+      // Create reason for the recommendation
+      let reason = '';
+      if (algorithm === 'content-based') {
+        reason = `Matches ${matchingTags.length} of your interested tags`;
+      } else if (algorithm === 'hybrid') {
+        reason = `Popular project matching your interests (Score: ${project.recommendationScore.toFixed(2)})`;
+      } else if (algorithm === 'basic-filtering') {
+        reason = `Matches your interested tags or courses`;
+      }
+
+      return {
+        userId: new Types.ObjectId(userId),
+        projectId: new Types.ObjectId(project._id),
+        algorithm,
+        score: project.recommendationScore || 0,
+        reason,
+        matchingTags,
+        shown: false,
+        clicked: false,
+        expiresAt,
+      };
+    });
+
+    // Delete old recommendations for this user and algorithm
+    await this.recommendationModel.deleteMany({
+      userId: new Types.ObjectId(userId),
+      algorithm,
+    });
+
+    // Save new recommendations
+    if (recommendations.length > 0) {
+      await this.recommendationModel.insertMany(recommendations);
+      console.log(`✅ Saved ${recommendations.length} ${algorithm} recommendations for user ${userId}`);
+    }
+  }
+
+  /**
+   * Retrieves saved recommendations from the database
+   * @param userId - User ID
+   * @param algorithm - Which algorithm
+   * @param page - Page number
+   * @param limit - Items per page
+   */
+  async getSavedRecommendations(
+    userId: string,
+    algorithm: string,
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<{ projects: any[]; total: number; fromCache: boolean }> {
+    const skip = (page - 1) * limit;
+    const now = new Date();
+
+    // Search for valid (non-expired) recommendations
+    const savedRecommendations = await this.recommendationModel
+      .find({
+        userId: new Types.ObjectId(userId),
+        algorithm,
+        expiresAt: { $gt: now },  // Only non-expired
+      })
+      .populate({
+        path: 'projectId',
+        populate: [
+          { path: 'tags' },
+          { path: 'courses' },
+          { path: 'owner', select: '_id firstName lastName email userType' },
+          { path: 'thumbnail' },
+        ],
+      })
+      .sort({ score: -1 })  // Highest score first
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+    const total = await this.recommendationModel.countDocuments({
+      userId: new Types.ObjectId(userId),
+      algorithm,
+      expiresAt: { $gt: now },
+    });
+
+    // Transform to project format
+    const projects = savedRecommendations.map(rec => ({
+      ...(rec.projectId as any),
+      recommendationScore: rec.score,
+      recommendationReason: rec.reason,
+      recommendationId: rec._id,
+    }));
+
+    return {
+      projects,
+      total,
+      fromCache: true,  // Indicates data comes from cache
+    };
+  }
+
+  /**
+   * Marks a recommendation as "shown"
+   * @param recommendationId - ID of the recommendation
+   */
+  async markRecommendationAsShown(recommendationId: string): Promise<void> {
+    await this.recommendationModel.updateOne(
+      { _id: new Types.ObjectId(recommendationId) },
+      {
+        $set: {
+          shown: true,
+          shownAt: new Date(),
+        },
+      },
+    );
+  }
+
+  /**
+   * Marks a recommendation as "clicked"
+   * @param recommendationId - ID of the recommendation
+   */
+  async markRecommendationAsClicked(recommendationId: string): Promise<void> {
+    await this.recommendationModel.updateOne(
+      { _id: new Types.ObjectId(recommendationId) },
+      {
+        $set: {
+          clicked: true,
+          clickedAt: new Date(),
+        },
+      },
+    );
+  }
+
+  /**
+   * Deletes expired recommendations (cleanup job)
+   */
+  async cleanupExpiredRecommendations(): Promise<number> {
+    const result = await this.recommendationModel.deleteMany({
+      expiresAt: { $lt: new Date() },
+    });
+    console.log(`🗑️ Deleted ${result.deletedCount} expired recommendations`);
+    return result.deletedCount;
+  }
+
+  /**
+   * Checks if valid recommendations exist in cache
+   * @param userId - User ID
+   * @param algorithm - Algorithm
+   */
+  async hasCachedRecommendations(
+    userId: string,
+    algorithm: string,
+  ): Promise<boolean> {
+    const count = await this.recommendationModel.countDocuments({
+      userId: new Types.ObjectId(userId),
+      algorithm,
+      expiresAt: { $gt: new Date() },
+    });
+    return count > 0;
+  }
+
 }
