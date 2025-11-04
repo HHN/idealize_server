@@ -1,10 +1,10 @@
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
-import { setupSwagger } from 'swagger/swagger.config';
-import * as dotenv from 'dotenv';
-import { NestExpressApplication } from '@nestjs/platform-express';
-import rateLimit from 'express-rate-limit';
-import * as bodyParser from 'body-parser';
+import { NestFactory } from "@nestjs/core";
+import { AppModule } from "./app.module";
+import { setupSwagger } from "swagger/swagger.config";
+import * as dotenv from "dotenv";
+import { NestExpressApplication } from "@nestjs/platform-express";
+import rateLimit from "express-rate-limit";
+import * as bodyParser from "body-parser";
 
 // import { join } from 'path';
 // import * as express from 'express';
@@ -12,11 +12,10 @@ import * as bodyParser from 'body-parser';
 // import cookieParser from 'cookie-parser';
 // import mongoose from 'mongoose';
 
-
 async function bootstrap() {
   /* Load environment variables based on NODE_ENV */
-  if (process.env.NODE_ENV === 'production') {
-    dotenv.config({ path: 'production.env' });
+  if (process.env.NODE_ENV === "production") {
+    dotenv.config({ path: "production.env" });
   } else {
     if (process.env.NODE_ENV === 'development') {
 
@@ -39,7 +38,6 @@ async function bootstrap() {
   /* Enable Mongoose debugging */
   // mongoose.set('debug', true);
 
-
   /* Enable CSRF */
   // app.use(cookieParser());
   // app.use(csurf({ cookie: { sameSite: true } }));
@@ -47,13 +45,15 @@ async function bootstrap() {
     // const token = req.csrfToken();
     // res.cookie('XSRF-TOKEN', token);
     // res.locals.csrfToken = token;
-    res.setHeader('X-Frame-Options', 'DENY');
-    res.setHeader('X-XSS-Protection', '1; mode=block');
-    res.setHeader('Content-Security-Policy', "default-src 'self'");
-    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+    res.setHeader("X-Frame-Options", "DENY");
+    res.setHeader("X-XSS-Protection", "1; mode=block");
+    res.setHeader("Content-Security-Policy", "default-src 'self'");
+    res.setHeader(
+      "Strict-Transport-Security",
+      "max-age=31536000; includeSubDomains; preload"
+    );
     next();
   });
-
 
   /* Enable rate limiting */
   // app.use(rateLimit({
@@ -62,28 +62,27 @@ async function bootstrap() {
   //   max: 1000,
   // }));
 
-
   /* Enable CORS */
   app.enableCors({
     origin: [
-      'http://localhost:4200',
-      'http://localhost:8200',
-      'http://localhost:8080',
-      'http://flutter-web-app',
-      'https://flutter-web-app',
-      'http://admin-dev.campusconnects.de',
-      'https://admin-dev.campusconnects.de',
-      'https://landing.campusconnects.de'
+      "http://localhost:4200",
+      "http://localhost:8200",
+      "http://localhost:8080",
+      "http://flutter-web-app",
+      "https://flutter-web-app",
+      "http://admin-dev.campusconnects.de",
+      "https://admin-dev.campusconnects.de",
+      "https://landing.campusconnects.de",
     ],
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
     credentials: true,
   });
 
   /* Setup Swagger */
   setupSwagger(app);
 
-  app.use(bodyParser.json({ limit: '10mb' }));
-  app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
+  app.use(bodyParser.json({ limit: "10mb" }));
+  app.use(bodyParser.urlencoded({ limit: "10mb", extended: true }));
 
   await app.listen(process.env.PORT || 6000);
 }
