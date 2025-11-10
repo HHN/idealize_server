@@ -85,6 +85,26 @@ STEP 2
 $ npm install
 ```
 
+## Starting MongoDB locally
+
+### MacOS
+```bash
+# Add the official MongoDB repository to Homebrew
+brew tap mongodb/brew
+
+# Update Homebrew and all available formulas
+brew update
+
+# Install mongodb-community version 7.0
+brew install mongodb-community@7.0
+
+# Start mongodb-community service
+brew services start mongodb-community@7.0
+
+# start the local mongodb instance
+mongosh <MONGODB_URI>
+```
+
 ## Running the app
 
 ```bash

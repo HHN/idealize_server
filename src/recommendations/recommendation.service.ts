@@ -51,6 +51,7 @@ export class RecommendationService {
     console.log('🔍 DEBUG - User Name:', user.username);
     console.log('🔍 DEBUG - User interestedTags:', user.interestedTags);
     console.log('🔍 DEBUG - User interestedCourses:', user.interestedCourses);
+    console.log('🔍 DEBUG - User studyprograms:', user.studyPrograms);
 
     // Get user's liked projects to exclude them
     const likedProjects = await this.likeProjectModel
@@ -59,12 +60,16 @@ export class RecommendationService {
       .lean();
     const likedProjectIds = likedProjects.map(like => like.projectId.toString());
 
-    // Extract user's interested tag and course IDs
-    const userTagIds = user.interestedTags.map((tag: any) => tag._id.toString());
-    const userCourseIds = user.interestedCourses.map((course: any) => course._id.toString());
+    // Extract user's interested tags, course IDs, and study program IDs
+    const userTagIds = user.interestedTags ? user.interestedTags.map((tag: any) => tag._id.toString()) : [];
+    const userCourseIds = user.interestedCourses ? user.interestedCourses.map((course: any) => course._id.toString()) : [];
+    
+    // prototype (not functional) -> include users with their interests into the recommendations
+    // const userProgramIds = user.studyPrograms ? user.studyPrograms.map((program: any) => program._id.toString()) : [];
 
     console.log('🔍 DEBUG - User Tag IDs:', userTagIds);
     console.log('🔍 DEBUG - User Course IDs:', userCourseIds);
+    // console.log('🔍 DEBUG - User Study Program IDs:', userProgramIds);
 
     // Get all non-draft projects (excluding user's own projects and already liked)
     const allProjects = await this.projectModel
@@ -78,6 +83,15 @@ export class RecommendationService {
       .populate('owner', '_id firstName lastName email userType')
       .populate('thumbnail')
       .lean();
+    
+    // prototype (not functional) -> include users with their interests into the recommendations
+    // const allUsers = await this.userModel.find()
+    //   .populate('firstName')
+    //   .populate('lastName')
+    //   .populate('interestedTags')
+    //   .populate('interestedCourses')
+    //   .populate('studyPrograms')
+    //   .lean();
 
     // console.log('🔍 DEBUG - Total projects found:', allProjects.length);
     // console.log('🔍 DEBUG - First 3 projects tags:', allProjects.slice(0, 3).map(p => ({
@@ -89,7 +103,7 @@ export class RecommendationService {
     const projectsWithScores = allProjects.map(project => {
       const projectTagIds = (project.tags as any[]).map((tag: any) => tag._id.toString());
       const projectCourseIds = (project.courses as any[]).map((course: any) => course._id.toString());
-
+      
       // Calculate tag overlap (Jaccard similarity)
       const tagIntersection = userTagIds.filter(tagId => projectTagIds.includes(tagId)).length;
       const tagUnion = new Set([...userTagIds, ...projectTagIds]).size;
@@ -117,6 +131,20 @@ export class RecommendationService {
       };
     });
 
+    // prototype (not functional) -> include users with their interests into the recommendations
+    // const usersWithScores = allUsers.map(user => {
+    //   const userTagIds = user.interestedTags ? user.interestedTags.map((tag: any) => tag._id.toString()) : [];
+    //   const userCourseIds = user.interestedCourses ? user.interestedCourses.map((course: any) => course._id.toString()) : [];
+    //   const userProgramIds = user.studyPrograms ? user.studyPrograms.map((program: any) => program._id.toString()) : [];
+
+    //   return {
+    //     ...user,
+    //     tagIds: userTagIds,
+    //     courseIds: userCourseIds,
+    //     programIds: userProgramIds,
+    //   };
+    // });
+
     // Sort by score (highest first)
     projectsWithScores.sort((a, b) => b.recommendationScore - a.recommendationScore);
 
@@ -134,7 +162,7 @@ export class RecommendationService {
   }
 
   /**
-   * Basic Filtering: Recommendations based on user's interested tags (simpler approach)
+   * Basic Filtering: Recommendations based on user's interested tags and courses (simpler approach)
    */
   async getBasicFilteredRecommendations(
     token: string,
@@ -253,184 +281,185 @@ export class RecommendationService {
     };
   }
 
-  // ============================================================
-  // NEW METHODS: Store recommendations in MongoDB
-  // ============================================================
+  // // NOT USED YET
+  // // ============================================================
+  // // Store recommendations in MongoDB
+  // // ============================================================
 
-  /**
-   * Saves calculated recommendations to the database
-   * @param userId - User ID for whom the recommendations are
-   * @param projects - Array of projects with scores
-   * @param algorithm - Which algorithm was used
-   */
-  async saveRecommendationsToDatabase(
-    userId: string,
-    projects: any[],
-    algorithm: string,
-  ): Promise<void> {
-    // Expiration date: 24 hours from now
-    const expiresAt = new Date();
-    expiresAt.setHours(expiresAt.getHours() + 24);
+  // /**
+  //  * Saves calculated recommendations to the database
+  //  * @param userId - User ID for whom the recommendations are
+  //  * @param projects - Array of projects with scores
+  //  * @param algorithm - Which algorithm was used
+  //  */
+  // async saveRecommendationsToDatabase(
+  //   userId: string,
+  //   projects: any[],
+  //   algorithm: string,
+  // ): Promise<void> {
+  //   // Expiration date: 24 hours from now
+  //   const expiresAt = new Date();
+  //   expiresAt.setHours(expiresAt.getHours() + 24);
 
-    // Create Recommendation Documents
-    const recommendations = projects.map(project => {
-      // Find matching tags between user and project
-      const matchingTags = project.tags
-        ? project.tags.map((tag: any) => tag._id)
-        : [];
+  //   // Create Recommendation Documents
+  //   const recommendations = projects.map(project => {
+  //     // Find matching tags between user and project
+  //     const matchingTags = project.tags
+  //       ? project.tags.map((tag: any) => tag._id)
+  //       : [];
 
-      // Create reason for the recommendation
-      let reason = '';
-      if (algorithm === 'content-based') {
-        reason = `Matches ${matchingTags.length} of your interested tags`;
-      } else if (algorithm === 'hybrid') {
-        reason = `Popular project matching your interests (Score: ${project.recommendationScore.toFixed(2)})`;
-      } else if (algorithm === 'basic-filtering') {
-        reason = `Matches your interested tags or courses`;
-      }
+  //     // Create reason for the recommendation
+  //     let reason = '';
+  //     if (algorithm === 'content-based') {
+  //       reason = `Matches ${matchingTags.length} of your interested tags`;
+  //     } else if (algorithm === 'hybrid') {
+  //       reason = `Popular project matching your interests (Score: ${project.recommendationScore.toFixed(2)})`;
+  //     } else if (algorithm === 'basic-filtering') {
+  //       reason = `Matches your interested tags or courses`;
+  //     }
 
-      return {
-        userId: new Types.ObjectId(userId),
-        projectId: new Types.ObjectId(project._id),
-        algorithm,
-        score: project.recommendationScore || 0,
-        reason,
-        matchingTags,
-        shown: false,
-        clicked: false,
-        expiresAt,
-      };
-    });
+  //     return {
+  //       userId: new Types.ObjectId(userId),
+  //       projectId: new Types.ObjectId(project._id),
+  //       algorithm,
+  //       score: project.recommendationScore || 0,
+  //       reason,
+  //       matchingTags,
+  //       shown: false,
+  //       clicked: false,
+  //       expiresAt,
+  //     };
+  //   });
 
-    // Delete old recommendations for this user and algorithm
-    await this.recommendationModel.deleteMany({
-      userId: new Types.ObjectId(userId),
-      algorithm,
-    });
+  //   // Delete old recommendations for this user and algorithm
+  //   await this.recommendationModel.deleteMany({
+  //     userId: new Types.ObjectId(userId),
+  //     algorithm,
+  //   });
 
-    // Save new recommendations
-    if (recommendations.length > 0) {
-      await this.recommendationModel.insertMany(recommendations);
-      console.log(`✅ Saved ${recommendations.length} ${algorithm} recommendations for user ${userId}`);
-    }
-  }
+  //   // Save new recommendations
+  //   if (recommendations.length > 0) {
+  //     await this.recommendationModel.insertMany(recommendations);
+  //     console.log(`✅ Saved ${recommendations.length} ${algorithm} recommendations for user ${userId}`);
+  //   }
+  // }
 
-  /**
-   * Retrieves saved recommendations from the database
-   * @param userId - User ID
-   * @param algorithm - Which algorithm
-   * @param page - Page number
-   * @param limit - Items per page
-   */
-  async getSavedRecommendations(
-    userId: string,
-    algorithm: string,
-    page: number = 1,
-    limit: number = 10,
-  ): Promise<{ projects: any[]; total: number; fromCache: boolean }> {
-    const skip = (page - 1) * limit;
-    const now = new Date();
+  // /**
+  //  * Retrieves saved recommendations from the database
+  //  * @param userId - User ID
+  //  * @param algorithm - Which algorithm
+  //  * @param page - Page number
+  //  * @param limit - Items per page
+  //  */
+  // async getSavedRecommendations(
+  //   userId: string,
+  //   algorithm: string,
+  //   page: number = 1,
+  //   limit: number = 10,
+  // ): Promise<{ projects: any[]; total: number; fromCache: boolean }> {
+  //   const skip = (page - 1) * limit;
+  //   const now = new Date();
 
-    // Search for valid (non-expired) recommendations
-    const savedRecommendations = await this.recommendationModel
-      .find({
-        userId: new Types.ObjectId(userId),
-        algorithm,
-        expiresAt: { $gt: now },  // Only non-expired
-      })
-      .populate({
-        path: 'projectId',
-        populate: [
-          { path: 'tags' },
-          { path: 'courses' },
-          { path: 'owner', select: '_id firstName lastName email userType' },
-          { path: 'thumbnail' },
-        ],
-      })
-      .sort({ score: -1 })  // Highest score first
-      .skip(skip)
-      .limit(limit)
-      .lean();
+  //   // Search for valid (non-expired) recommendations
+  //   const savedRecommendations = await this.recommendationModel
+  //     .find({
+  //       userId: new Types.ObjectId(userId),
+  //       algorithm,
+  //       expiresAt: { $gt: now },  // Only non-expired
+  //     })
+  //     .populate({
+  //       path: 'projectId',
+  //       populate: [
+  //         { path: 'tags' },
+  //         { path: 'courses' },
+  //         { path: 'owner', select: '_id firstName lastName email userType' },
+  //         { path: 'thumbnail' },
+  //       ],
+  //     })
+  //     .sort({ score: -1 })  // Highest score first
+  //     .skip(skip)
+  //     .limit(limit)
+  //     .lean();
 
-    const total = await this.recommendationModel.countDocuments({
-      userId: new Types.ObjectId(userId),
-      algorithm,
-      expiresAt: { $gt: now },
-    });
+  //   const total = await this.recommendationModel.countDocuments({
+  //     userId: new Types.ObjectId(userId),
+  //     algorithm,
+  //     expiresAt: { $gt: now },
+  //   });
 
-    // Transform to project format
-    const projects = savedRecommendations.map(rec => ({
-      ...(rec.projectId as any),
-      recommendationScore: rec.score,
-      recommendationReason: rec.reason,
-      recommendationId: rec._id,
-    }));
+  //   // Transform to project format
+  //   const projects = savedRecommendations.map(rec => ({
+  //     ...(rec.projectId as any),
+  //     recommendationScore: rec.score,
+  //     recommendationReason: rec.reason,
+  //     recommendationId: rec._id,
+  //   }));
 
-    return {
-      projects,
-      total,
-      fromCache: true,  // Indicates data comes from cache
-    };
-  }
+  //   return {
+  //     projects,
+  //     total,
+  //     fromCache: true,  // Indicates data comes from cache
+  //   };
+  // }
 
-  /**
-   * Marks a recommendation as "shown"
-   * @param recommendationId - ID of the recommendation
-   */
-  async markRecommendationAsShown(recommendationId: string): Promise<void> {
-    await this.recommendationModel.updateOne(
-      { _id: new Types.ObjectId(recommendationId) },
-      {
-        $set: {
-          shown: true,
-          shownAt: new Date(),
-        },
-      },
-    );
-  }
+  // /**
+  //  * Marks a recommendation as "shown"
+  //  * @param recommendationId - ID of the recommendation
+  //  */
+  // async markRecommendationAsShown(recommendationId: string): Promise<void> {
+  //   await this.recommendationModel.updateOne(
+  //     { _id: new Types.ObjectId(recommendationId) },
+  //     {
+  //       $set: {
+  //         shown: true,
+  //         shownAt: new Date(),
+  //       },
+  //     },
+  //   );
+  // }
 
-  /**
-   * Marks a recommendation as "clicked"
-   * @param recommendationId - ID of the recommendation
-   */
-  async markRecommendationAsClicked(recommendationId: string): Promise<void> {
-    await this.recommendationModel.updateOne(
-      { _id: new Types.ObjectId(recommendationId) },
-      {
-        $set: {
-          clicked: true,
-          clickedAt: new Date(),
-        },
-      },
-    );
-  }
+  // /**
+  //  * Marks a recommendation as "clicked"
+  //  * @param recommendationId - ID of the recommendation
+  //  */
+  // async markRecommendationAsClicked(recommendationId: string): Promise<void> {
+  //   await this.recommendationModel.updateOne(
+  //     { _id: new Types.ObjectId(recommendationId) },
+  //     {
+  //       $set: {
+  //         clicked: true,
+  //         clickedAt: new Date(),
+  //       },
+  //     },
+  //   );
+  // }
 
-  /**
-   * Deletes expired recommendations (cleanup job)
-   */
-  async cleanupExpiredRecommendations(): Promise<number> {
-    const result = await this.recommendationModel.deleteMany({
-      expiresAt: { $lt: new Date() },
-    });
-    console.log(`🗑️ Deleted ${result.deletedCount} expired recommendations`);
-    return result.deletedCount;
-  }
+  // /**
+  //  * Deletes expired recommendations (cleanup job)
+  //  */
+  // async cleanupExpiredRecommendations(): Promise<number> {
+  //   const result = await this.recommendationModel.deleteMany({
+  //     expiresAt: { $lt: new Date() },
+  //   });
+  //   console.log(`🗑️ Deleted ${result.deletedCount} expired recommendations`);
+  //   return result.deletedCount;
+  // }
 
-  /**
-   * Checks if valid recommendations exist in cache
-   * @param userId - User ID
-   * @param algorithm - Algorithm
-   */
-  async hasCachedRecommendations(
-    userId: string,
-    algorithm: string,
-  ): Promise<boolean> {
-    const count = await this.recommendationModel.countDocuments({
-      userId: new Types.ObjectId(userId),
-      algorithm,
-      expiresAt: { $gt: new Date() },
-    });
-    return count > 0;
-  }
+  // /**
+  //  * Checks if valid recommendations exist in cache
+  //  * @param userId - User ID
+  //  * @param algorithm - Algorithm
+  //  */
+  // async hasCachedRecommendations(
+  //   userId: string,
+  //   algorithm: string,
+  // ): Promise<boolean> {
+  //   const count = await this.recommendationModel.countDocuments({
+  //     userId: new Types.ObjectId(userId),
+  //     algorithm,
+  //     expiresAt: { $gt: new Date() },
+  //   });
+  //   return count > 0;
+  // }
 
 }
