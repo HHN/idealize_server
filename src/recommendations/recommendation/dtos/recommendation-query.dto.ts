@@ -3,10 +3,13 @@ import { Type } from 'class-transformer';
 import { ApiPropertyOptional, ApiProperty } from '@nestjs/swagger';
 
 export class RecommendationQueryDto {
-  @ApiProperty()
-    @IsString()
-    id: string;
-    
+  @ApiProperty({
+    description: 'ID of a user',
+  })
+  @Type(() => String)
+  @IsString()
+  id: string;
+
   @ApiPropertyOptional({
     description: 'Page number for pagination',
     example: 1,
