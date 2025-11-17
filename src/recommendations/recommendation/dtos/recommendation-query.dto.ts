@@ -4,7 +4,6 @@ import { ApiPropertyOptional, ApiProperty } from '@nestjs/swagger';
 
 export class RecommendationQueryDto {
   @ApiProperty()
-    @IsOptional()
     @IsString()
     id: string;
   @ApiPropertyOptional({
