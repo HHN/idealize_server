@@ -1,8 +1,12 @@
-import { IsOptional, IsNumber, Min, Max } from 'class-validator';
+import { IsOptional, IsNumber, IsString, Min, Max } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiPropertyOptional, ApiProperty } from '@nestjs/swagger';
 
 export class RecommendationQueryDto {
+  @ApiProperty()
+    @IsOptional()
+    @IsString()
+    id: string;
   @ApiPropertyOptional({
     description: 'Page number for pagination',
     example: 1,

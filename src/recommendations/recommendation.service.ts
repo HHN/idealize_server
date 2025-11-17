@@ -24,18 +24,19 @@ export class RecommendationService {
    */
   async getContentBasedRecommendations(
     token: string,
-    page: number = 1,
-    limit: number = 10,
+    id: string
+    // page: number = 1,
+    // limit: number = 10,
   ): Promise<{ projects: any[]; total: number; algorithm: string }> {
     // Decode JWT to get user ID
     const jwtUser = await this.authService.decodeJWT(token);
-    console.log('🔍 DEBUG - Decoded JWT User:', jwtUser, 'toke: ', token);
+    console.log('🔍 DEBUG - Decoded JWT User:', jwtUser, 'token: ', token);
     const userId = jwtUser.userId;
     const userName = jwtUser.name;
 
     // Get user profile with interests
     const user = await this.userModel
-      .findById(userId)
+      .findById(id) // changed from jwtUser.userId to id
       .populate('interestedTags')
       .populate('interestedCourses')
       .lean();
@@ -148,14 +149,17 @@ export class RecommendationService {
     // Sort by score (highest first)
     projectsWithScores.sort((a, b) => b.recommendationScore - a.recommendationScore);
 
-    // Pagination
-    const skip = (page - 1) * limit;
-    const paginatedProjects = projectsWithScores.slice(skip, skip + limit);
+    // Pagination - not needed right now
+    // const skip = (page - 1) * limit;
+    // const paginatedProjects = projectsWithScores.slice(skip, skip + limit);
     const total = projectsWithScores.length;
 
-    console.log('🔍 DEBUG - For you - content-based:', paginatedProjects);
+    // console.log('🔍 DEBUG - For you - content-based:', paginatedProjects);
+    console.log('🔍 DEBUG - For you - content-based:', projectsWithScores);
+
     return {
-      projects: paginatedProjects,
+      //projects: paginatedProjects,
+      projects: projectsWithScores,
       total,
       algorithm: 'content-based',
     };
@@ -166,8 +170,9 @@ export class RecommendationService {
    */
   async getBasicFilteredRecommendations(
     token: string,
-    page: number = 1,
-    limit: number = 10,
+    id: string,
+    // page: number = 1,
+    // limit: number = 10,
   ): Promise<{ projects: any[]; total: number; algorithm: string }> {
     // Decode JWT to get user ID
     const jwtUser = await this.authService.decodeJWT(token);
@@ -175,7 +180,8 @@ export class RecommendationService {
 
     // Get user profile with interests
     const user = await this.userModel
-      .findById(jwtUser.userId)
+      // .findById(jwtUser.userId)
+      .findById(id) // changed from jwtUser.userId to id
       .populate('interestedTags')
       .populate('interestedCourses')
       .lean();
@@ -186,7 +192,8 @@ export class RecommendationService {
 
     // Get user's liked projects to exclude them
     const likedProjects = await this.likeProjectModel
-      .find({ userId: new Types.ObjectId(userId) })
+      // .find({ userId: new Types.ObjectId(userId) })
+      .find({ userId: id }) // changed from jwtUser.userId to id
       .select('projectId')
       .lean();
     const likedProjectIds = likedProjects.map(like => like.projectId.toString());
@@ -195,7 +202,7 @@ export class RecommendationService {
     const userTagIds = user.interestedTags.map((tag: any) => tag._id);
     const userCourseIds = user.interestedCourses.map((course: any) => course._id);
 
-    const skip = (page - 1) * limit;
+    // const skip = (page - 1) * limit;
 
     // Query projects that match user's interests
     const query: any = {
@@ -217,8 +224,8 @@ export class RecommendationService {
       .populate('thumbnail')
       .populate('teamMembers', '_id firstName lastName email userType')
       .sort({ createdAt: -1 }) // Most recent first
-      .skip(skip)
-      .limit(limit)
+      // .skip(skip)
+      // .limit(limit)
       .lean();
 
     const total = await this.projectModel.countDocuments(query);
@@ -235,11 +242,13 @@ export class RecommendationService {
    */
   async getHybridRecommendations(
     token: string,
-    page: number = 1,
-    limit: number = 10,
+    id: string
+    // page: number = 1,
+    // limit: number = 10,
   ): Promise<{ projects: any[]; total: number; algorithm: string }> {
     // Get content-based recommendations (without pagination to calculate popularity)
-    const contentBased = await this.getContentBasedRecommendations(token, 1, 100);
+    // const contentBased = await this.getContentBasedRecommendations(token, 1, 100); // pagination disabled
+    const contentBased = await this.getContentBasedRecommendations(token, id);
     
     // Add popularity score based on likes
     const projectsWithPopularity = await Promise.all(
@@ -269,13 +278,15 @@ export class RecommendationService {
     
 
     // Pagination
-    const skip = (page - 1) * limit;
-    const paginatedProjects = projectsWithPopularity.slice(skip, skip + limit);
+    // const skip = (page - 1) * limit;
+    // const paginatedProjects = projectsWithPopularity.slice(skip, skip + limit);
     const total = projectsWithPopularity.length;
-    console.log('🔍 DEBUG - For you - Hyprid:', paginatedProjects);
+    //console.log('🔍 DEBUG - For you - Hyprid:', paginatedProjects);
+    console.log('🔍 DEBUG - For you - Hyprid:', projectsWithPopularity);
 
     return {
-      projects: paginatedProjects,
+      // projects: paginatedProjects,
+      projects: projectsWithPopularity,
       total,
       algorithm: 'hybrid',
     };

@@ -22,8 +22,9 @@ export class RecommendationController {
   ) {
     return this.recommendationService.getContentBasedRecommendations(
       token,
-      query.page,
-      query.limit,
+      query.id,
+      // query.page,
+      // query.limit,
     );
   }
 
@@ -38,8 +39,9 @@ export class RecommendationController {
   ) {
     return this.recommendationService.getBasicFilteredRecommendations(
       token,
-      query.page,
-      query.limit,
+      query.id
+      // query.page,
+      // query.limit,
     );
   }
 
@@ -54,8 +56,9 @@ export class RecommendationController {
   ) {
     return this.recommendationService.getHybridRecommendations(
       token,
-      query.page,
-      query.limit,
+      query.id,
+      // query.page,
+      // query.limit,
     );
   }
 }
