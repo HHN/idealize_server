@@ -6,6 +6,7 @@ export class RecommendationQueryDto {
   @ApiProperty()
     @IsString()
     id: string;
+    
   @ApiPropertyOptional({
     description: 'Page number for pagination',
     example: 1,
