@@ -25,6 +25,8 @@ import { BugReportModule } from './bug-report/bug-report.module';
 import { UserStatusMiddleware } from './shared/middlewares/user_status_mw';
 import { RequestIosAccessSchema } from './shared/schemas/request_ios_access.schema';
 import { SurveySchema } from './shared/schemas/survey.schema';
+//TODO SH: GDPR encryption - import EncryptionModule for AppService health endpoint
+import { EncryptionModule } from './encryption/encryption.module';
 
 @Module({
   imports: [
@@ -58,6 +60,8 @@ import { SurveySchema } from './shared/schemas/survey.schema';
     SeedingModule,
     ArchiveModule,
     BugReportModule,
+    //TODO SH: GDPR encryption - add EncryptionModule for AppService dependency
+    EncryptionModule,
   ],
   controllers: [AppController],
   providers: [

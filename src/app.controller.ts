@@ -14,6 +14,15 @@ export class AppController {
     return this.appService.getHealthCheck();
   }
 
+  //TODO SH: GDPR encryption - expose encryption health metrics (no secrets)
+  @UseGuards(JwtAdminAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiHeader({ name: 'Authorization', required: false })
+  @Get('health/encryption')
+  getEncryptionHealth(): any {
+    return this.appService.getEncryptionHealth();
+  }
+
   @Post('request-test-account')
   @ApiBody({ type: CreateReqIosAccessDto })
   @UsePipes(new ValidationPipe({ transform: true }))

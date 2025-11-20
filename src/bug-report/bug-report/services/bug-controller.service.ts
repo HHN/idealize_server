@@ -6,6 +6,8 @@ import { BugReport, BugReportDocument } from '../schemas/bug-report.schema';
 import { CreateBugReportDto } from '../dtos/create-bug-report.dto';
 import { MailerService } from 'src/mailer/mailer.service';
 import { User, UserDocument } from 'src/users/user/schemas/user.schema';
+//TODO SH: GDPR encryption - import EncryptionService for email decryption
+import { EncryptionService } from 'src/encryption/encryption.service';
 
 @Injectable()
 export class BugReportService {
@@ -14,6 +16,8 @@ export class BugReportService {
         @InjectModel(User.name) private userModel: Model<UserDocument>,
         private authService: AuthService,
         private mailerServive: MailerService,
+        //TODO SH: GDPR encryption - inject EncryptionService for email operations
+        private readonly encryptionService: EncryptionService,
     ) { }
 
     async new(createReportDto: CreateBugReportDto, token: string): Promise<BugReport> {
@@ -36,11 +40,16 @@ export class BugReportService {
             }
             
             try {
+                //TODO SH: GDPR encryption - select and decrypt email for notification (post-cutover)
                 const userData = await this.userModel
                   .findOne({ _id: jwtUser.userId })
+                  .select('+email_enc')
                   .exec();
+                
+                const decryptedEmail = this.encryptionService.decrypt(userData.email_enc);
+                
                 await this.mailerServive.sendBugReportUnderReview(
-                  userData.email,
+                  decryptedEmail,
                   `${userData.firstName} ${userData.lastName}`,
                   createReportDto.content,
                 );
@@ -62,10 +71,11 @@ export class BugReportService {
     }
 
     async fetchAllByAdmin(): Promise<BugReport[]> {
-        return await this.bugReportModel.find()
+        //TODO SH: GDPR encryption - select +email_enc for userId and nested users, then decrypt
+        const bugReports = await this.bugReportModel.find()
             .populate({
                 path: 'userId',
-                select: '_id firstName lastName email status userType username profilePicture',
+                select: '_id firstName lastName email status userType username profilePicture +email_enc', // Select encrypted field
                 model: 'User',
                 populate: {
                     path: 'profilePicture',
@@ -73,12 +83,57 @@ export class BugReportService {
                     populate: {
                         path: 'user',
                         model: 'User',
-                        select: '_id firstName lastName email userType profilePicture'
+                        select: '_id firstName lastName email userType profilePicture +email_enc' // Nested user
                     },
                 }
             })
             .sort({ createdAt: -1 })
-            .exec();
+            .lean();
+
+        // Decrypt user PII in userId
+        return bugReports.map(report => {
+            if (report.userId) {
+                report.userId = this.decryptUserPII(report.userId);
+            }
+            return report;
+        });
+    }
+
+    //TODO SH: GDPR encryption - helper method to decrypt user PII in populated objects
+    private decryptUserPII(obj: any): any {
+        if (!obj) return obj;
+        if (Array.isArray(obj)) {
+            return obj.map(item => this.decryptUserPII(item));
+        }
+
+        const result = { ...obj };
+
+        if (result.email_enc) {
+            try {
+                result.email = this.encryptionService.decrypt(result.email_enc);
+            } catch (error) {
+                console.error('Failed to decrypt email:', error);
+                result.email = '';
+            }
+            delete result.email_enc;
+        }
+
+        delete result.hashedEmail;
+        delete result.firstName_enc;
+        delete result.lastName_enc;
+        delete result.username_enc;
+        delete result.userType_enc;
+        delete result.institution_enc;
+        delete result.overview_enc;
+        delete result.recoveryEmail_enc;
+
+        if (result.profilePicture && typeof result.profilePicture === 'object') {
+            if (result.profilePicture.user) {
+                result.profilePicture.user = this.decryptUserPII(result.profilePicture.user);
+            }
+        }
+
+        return result;
     }
 
     async removeByAdmin(bugReportedId: string) {

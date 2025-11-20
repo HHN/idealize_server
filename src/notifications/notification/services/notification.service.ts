@@ -6,6 +6,8 @@ import { CreateNotificationDto } from '../dtos/create-notification.dto';
 import { AuthService } from 'src/auth/auth.service';
 import { ReadNotificationDto } from '../dtos/read-notification.dto';
 import { ProjectDocument } from 'src/projects/project/schemas/project.schema';
+//TODO SH: GDPR encryption - import EncryptionService for email decryption in nested populates
+import { EncryptionService } from 'src/encryption/encryption.service';
 
 @Injectable()
 export class NotificationService {
@@ -13,6 +15,8 @@ export class NotificationService {
         @InjectModel('Project') private readonly projectModel: Model<ProjectDocument>,
         @InjectModel(Notification.name) private notificationModel: Model<NotificationDocument>,
         private authService: AuthService,
+        //TODO SH: GDPR encryption - inject EncryptionService for decrypting populated user emails
+        private readonly encryptionService: EncryptionService,
     ) { }
 
     async generalNotification(
@@ -116,17 +120,18 @@ export class NotificationService {
             ]
         };
 
+        //TODO SH: GDPR encryption - select +email_enc for sender and owner, then decrypt
         const notifications = await this.notificationModel.find(query)
             .populate({
                 path: 'sender',
-                select: '_id firstName lastName email status userType interestedTags interestedCourses username profilePicture',
+                select: '_id firstName lastName email status userType interestedTags interestedCourses username profilePicture +email_enc', // Select encrypted field
                 populate: {
                     path: 'profilePicture',
                     model: 'Upload',
                     populate: {
                         path: 'user',
                         model: 'User',
-                        select: '_id firstName lastName email userType'
+                        select: '_id firstName lastName email userType +email_enc' // Nested user
                     }
                 }
             })
@@ -144,7 +149,7 @@ export class NotificationService {
                 populate: {
                     path: 'owner',
                     model: 'User',
-                    select: '_id firstName lastName email userType profilePicture',
+                    select: '_id firstName lastName email userType profilePicture +email_enc', // Select encrypted field
                     populate: {
                         path: 'profilePicture',
                         model: 'Upload',
@@ -152,11 +157,22 @@ export class NotificationService {
                 }
             })
             .sort({ 'createdAt': 'desc', '_id': 'desc' })
-            .exec();
+            .lean();
 
         const filteredNotifications = notifications.filter(notification => notification.projectId !== null);
 
-        return filteredNotifications;
+        // Decrypt user PII in sender and owner
+        const decryptedNotifications = filteredNotifications.map((notification: any) => {
+            if (notification.sender) {
+                notification.sender = this.decryptUserPII(notification.sender);
+            }
+            if (notification.projectId && notification.projectId.owner) {
+                notification.projectId.owner = this.decryptUserPII(notification.projectId.owner);
+            }
+            return notification;
+        });
+
+        return decryptedNotifications;
     }
 
     async read(readNotificationDto: ReadNotificationDto, token: string): Promise<boolean> {
@@ -220,5 +236,51 @@ export class NotificationService {
 
     async getOneNotification(notificationId: string): Promise<Notification> {
         return await this.notificationModel.findOne({ _id: notificationId });
+    }
+
+    //TODO SH: GDPR encryption - helper method to decrypt user PII in populated objects
+    /**
+     * Decrypts email_enc in a user object or nested structures.
+     * Removes email_enc, hashedEmail, and other sensitive fields from response.
+     */
+    private decryptUserPII(obj: any): any {
+        if (!obj) return obj;
+
+        // Handle array of objects
+        if (Array.isArray(obj)) {
+            return obj.map(item => this.decryptUserPII(item));
+        }
+
+        const result = { ...obj };
+
+        // Decrypt email if email_enc exists
+        if (result.email_enc) {
+            try {
+                result.email = this.encryptionService.decrypt(result.email_enc);
+            } catch (error) {
+                console.error('Failed to decrypt email:', error);
+                result.email = '';
+            }
+            delete result.email_enc;
+        }
+
+        // Remove other encrypted/sensitive fields
+        delete result.hashedEmail;
+        delete result.firstName_enc;
+        delete result.lastName_enc;
+        delete result.username_enc;
+        delete result.userType_enc;
+        delete result.institution_enc;
+        delete result.overview_enc;
+        delete result.recoveryEmail_enc;
+
+        // Recursively decrypt nested user objects
+        if (result.profilePicture && typeof result.profilePicture === 'object') {
+            if (result.profilePicture.user) {
+                result.profilePicture.user = this.decryptUserPII(result.profilePicture.user);
+            }
+        }
+
+        return result;
     }
 }

@@ -7,6 +7,8 @@ import { BugReportService } from './bug-report/services/bug-controller.service';
 import { AdminBugReportController } from './bug-report/controllers/admin-bug-report.controller';
 import { UserSchema } from 'src/users/user/schemas/user.schema';
 import { MailerModule } from 'src/mailer/mailer.module';
+//TODO SH: GDPR encryption - import EncryptionModule for email decryption in bug reports
+import { EncryptionModule } from 'src/encryption/encryption.module';
 
 @Module({
     imports: [
@@ -16,6 +18,7 @@ import { MailerModule } from 'src/mailer/mailer.module';
         ]),
         AuthModule,
         MailerModule,
+        EncryptionModule, //TODO SH: GDPR encryption - enable email decryption
     ],
     controllers: [
         BugReportController,

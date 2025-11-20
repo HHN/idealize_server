@@ -3,6 +3,8 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { RequestIosAccess, RequestIosAccessDocument } from './shared/schemas/request_ios_access.schema';
 import { CreateReqIosAccessDto } from './shared/dtos/create-ios-access-dto';
+//TODO SH: GDPR encryption - import EncryptionService for health endpoint
+import { EncryptionService } from './encryption/encryption.service';
 
 import axios from 'axios';
 import { CreateSurveyDto } from './shared/dtos/create-survey.dto';
@@ -18,10 +20,32 @@ export class AppService {
   constructor(
     @InjectModel(RequestIosAccess.name) private requestIosAccessModel: Model<RequestIosAccessDocument>,
     @InjectModel(Survey.name) private surveyModel: Model<SurveyDocument>,
+    //TODO SH: GDPR encryption - inject EncryptionService for health metrics
+    private readonly encryptionService: EncryptionService,
   ) { }
 
   getHealthCheck(): string {
     return 'OK - Health Check Passed';
+  }
+
+  //TODO SH: GDPR encryption - health endpoint with encryption metrics (no secrets exposed)
+  getEncryptionHealth(): any {
+    const metrics = this.encryptionService.getMetrics();
+    const provider = this.encryptionService.getKeyProvider();
+    return {
+      status: 'healthy',
+      encryption: {
+        provider: provider.constructor.name,
+        keyVersion: this.encryptionService.getKeyVersion(),
+        metrics: {
+          totalEncryptions: metrics.encryptionCount,
+          totalDecryptions: metrics.decryptionCount,
+          failedDecryptions: metrics.decryptionFailures,
+          plaintextFallbacks: metrics.plaintextFallbackCount,
+          hmacIndexGenerations: metrics.hmacIndexCount,
+        }
+      }
+    };
   }
 
   async requestTestAccount(createReqIosAccessDto: CreateReqIosAccessDto) {

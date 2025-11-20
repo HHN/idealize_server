@@ -14,6 +14,8 @@ import { ReportModule } from 'src/reports/report.module';
 import { UserSchema } from 'src/users/user/schemas/user.schema';
 import { ArchiveSchema } from 'src/archives/archive/schemas/archive.schema';
 import { TagSchema } from 'src/tags/tag/schemas/tag.schema';
+//TODO SH: GDPR encryption - import EncryptionModule for email decryption in projects
+import { EncryptionModule } from 'src/encryption/encryption.module';
 
 @Module({
     imports: [
@@ -30,6 +32,7 @@ import { TagSchema } from 'src/tags/tag/schemas/tag.schema';
         CommentsModule,
         LikeModule,
         ReportModule,
+        EncryptionModule, //TODO SH: GDPR encryption - enable email decryption
     ],
     controllers: [
         ProjectsController,

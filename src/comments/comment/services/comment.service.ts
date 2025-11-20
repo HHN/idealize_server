@@ -5,6 +5,8 @@ import { Comment, CommentDocument } from '../schemas/comment.schema';
 import { CreateCommentDto } from '../dtos/create-comment.dto';
 import { AuthService } from 'src/auth/auth.service';
 import { NotificationService } from 'src/notifications/notification/services/notification.service';
+//TODO SH: GDPR encryption - import EncryptionService for email decryption in nested populates
+import { EncryptionService } from 'src/encryption/encryption.service';
 
 @Injectable()
 export class CommentsService {
@@ -12,6 +14,8 @@ export class CommentsService {
     @InjectModel(Comment.name) private commentModel: Model<CommentDocument>,
     private readonly authService: AuthService,
     private readonly notificationService: NotificationService,
+    //TODO SH: GDPR encryption - inject EncryptionService for decrypting populated user emails
+    private readonly encryptionService: EncryptionService,
   ) { }
 
   async create(createCommentDto: CreateCommentDto, token: string): Promise<boolean> {
@@ -66,10 +70,11 @@ export class CommentsService {
 
     const query = { parentCommentId: commentId };
 
+    //TODO SH: GDPR encryption - select +email_enc for userId and nested users in populate
     const commentsData = await this.commentModel.find(query)
       .populate({
         path: 'userId',
-        select: '_id firstName lastName email status userType username profilePicture',
+        select: '_id firstName lastName email status userType username profilePicture +email_enc', // Select encrypted field
         model: 'User',
         populate: {
           path: 'profilePicture',
@@ -77,7 +82,7 @@ export class CommentsService {
           populate: {
             path: 'user',
             model: 'User',
-            select: '_id firstName lastName email userType profilePicture'
+            select: '_id firstName lastName email userType profilePicture +email_enc' // Nested user
           },
         }
       })
@@ -87,25 +92,28 @@ export class CommentsService {
         populate: {
           path: 'userId',
           model: 'User',
-          select: '_id firstName lastName email userType profilePicture',
+          select: '_id firstName lastName email userType profilePicture +email_enc', // Select encrypted field
           populate: {
             path: 'profilePicture',
             model: 'Upload',
             populate: {
               path: 'user',
               model: 'User',
-              select: '_id firstName lastName email userType profilePicture'
+              select: '_id firstName lastName email userType profilePicture +email_enc' // Nested user
             },
           },
         },
       })
       .skip(skip)
       .limit(limit)
-      .exec();
+      .lean();
+
+    // Decrypt user PII in all populated users
+    const decryptedComments = commentsData.map(comment => this.decryptUserPII(comment));
 
     const total = await this.commentModel.countDocuments(query);
 
-    return { comments: commentsData, total };
+    return { comments: decryptedComments, total };
   }
 
   async findAllByProjectId(
@@ -115,6 +123,7 @@ export class CommentsService {
   ): Promise<{ comments: Comment[]; total: number }> {
     const skip = (page - 1) * limit;
 
+    //TODO SH: GDPR encryption - include email_enc in aggregate $project stage for decryption
     // Fetch all comments for the project
     const allComments = await this.commentModel.aggregate([
       { $match: { projectId: new Types.ObjectId(projectId) } },
@@ -142,6 +151,7 @@ export class CommentsService {
                 firstName: 1,
                 lastName: 1,
                 email: 1,
+                email_enc: 1, // Include encrypted email for decryption
                 userType: 1,
                 profilePicture: { $arrayElemAt: ['$profilePicture', 0] }
               }
@@ -165,14 +175,18 @@ export class CommentsService {
     // Get paginated root-level comments
     const rootComments = buildNestedComments(allComments, null).slice(skip, skip + limit);
 
+    // Decrypt user PII in all nested comments (including replies)
+    const decryptedComments = rootComments.map(comment => this.decryptUserPII(comment));
+
     // Get total count of root-level comments
     const total = allComments.filter(comment => !comment.parentCommentId).length;
 
-    return { comments: rootComments, total };
+    return { comments: decryptedComments, total };
   }
 
   async findAll(page: number = 1, limit: number = 10,): Promise<{ comments: Comment[]; total: number }> {
     const skip = (page - 1) * limit;
+    //TODO SH: GDPR encryption - select +email_enc for userId and nested users
     const commentsData = await this.commentModel.find()
       .populate({
         path: 'projectId',
@@ -181,7 +195,7 @@ export class CommentsService {
       })
       .populate({
         path: 'userId',
-        select: '_id firstName lastName email status userType username profilePicture',
+        select: '_id firstName lastName email status userType username profilePicture +email_enc', // Select encrypted field
         model: 'User',
         populate: {
           path: 'profilePicture',
@@ -189,7 +203,7 @@ export class CommentsService {
           populate: {
             path: 'user',
             model: 'User',
-            select: '_id firstName lastName email userType profilePicture'
+            select: '_id firstName lastName email userType profilePicture +email_enc' // Nested user
           },
         }
       })
@@ -199,14 +213,14 @@ export class CommentsService {
         populate: {
           path: 'userId',
           model: 'User',
-          select: '_id firstName lastName email userType profilePicture',
+          select: '_id firstName lastName email userType profilePicture +email_enc', // Select encrypted field
           populate: {
             path: 'profilePicture',
             model: 'Upload',
             populate: {
               path: 'user',
               model: 'User',
-              select: '_id firstName lastName email userType profilePicture'
+              select: '_id firstName lastName email userType profilePicture +email_enc' // Nested user
             },
           },
         },
@@ -221,8 +235,12 @@ export class CommentsService {
 
     for (const comment of commentsData) {
       const replies = await this.findAllRepliesByCommentId(1, 5, comment._id.toString());
+      
+      // Decrypt user PII in comment
+      const decryptedComment = this.decryptUserPII(comment);
+      
       commentsWithReplies.push({
-        ...comment,
+        ...decryptedComment,
         replies
       });
     }
@@ -288,4 +306,64 @@ export class CommentsService {
 
     return false;
   }
+
+  //TODO SH: GDPR encryption - helper method to decrypt user PII in populated objects
+  /**
+   * Decrypts email_enc in a user object or nested structures.
+   * Removes email_enc, hashedEmail, and other sensitive fields from response.
+   * @param obj - User object, comment with populated user, or any nested structure
+   * @returns Same structure with decrypted email field
+   */
+  private decryptUserPII(obj: any): any {
+    if (!obj) return obj;
+
+    // Handle array of objects
+    if (Array.isArray(obj)) {
+      return obj.map(item => this.decryptUserPII(item));
+    }
+
+    // Make a copy to avoid mutating input
+    const result = { ...obj };
+
+    // Decrypt email if email_enc exists
+    if (result.email_enc) {
+      try {
+        result.email = this.encryptionService.decrypt(result.email_enc);
+      } catch (error) {
+        console.error('Failed to decrypt email:', error);
+        result.email = '';
+      }
+      delete result.email_enc;
+    }
+
+    // Remove other encrypted/sensitive fields
+    delete result.hashedEmail;
+    delete result.firstName_enc;
+    delete result.lastName_enc;
+    delete result.username_enc;
+    delete result.userType_enc;
+    delete result.institution_enc;
+    delete result.overview_enc;
+    delete result.recoveryEmail_enc;
+
+    // Recursively decrypt nested user objects
+    if (result.userId && typeof result.userId === 'object') {
+      result.userId = this.decryptUserPII(result.userId);
+    }
+    if (result.user && typeof result.user === 'object') {
+      result.user = this.decryptUserPII(result.user);
+    }
+    if (result.parentCommentId && result.parentCommentId.userId) {
+      result.parentCommentId.userId = this.decryptUserPII(result.parentCommentId.userId);
+    }
+    // Handle profilePicture.user in nested structures
+    if (result.profilePicture && typeof result.profilePicture === 'object') {
+      if (result.profilePicture.user) {
+        result.profilePicture.user = this.decryptUserPII(result.profilePicture.user);
+      }
+    }
+
+    return result;
+  }
 }
+

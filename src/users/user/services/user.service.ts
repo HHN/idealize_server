@@ -14,6 +14,10 @@ import { DeleteUserDto } from '../dtos/delete-user.dto';
 import { ResetPasswordDto, ResetPasswordRequestDto } from '../dtos/reset-password.dto';
 import { UpdateUserByAdminDto } from '../dtos/update-user-by-admin.dto';
 import { Project, ProjectDocument } from 'src/projects/project/schemas/project.schema';
+//TODO SH: GDPR encryption - import EncryptionService for email encryption
+import { EncryptionService } from 'src/encryption/encryption.service';
+//TODO SH: GDPR encryption - import email normalization utility
+import { normalizeEmail } from 'src/shared/utils/email.utils';
 
 @Injectable()
 export class UsersService {
@@ -22,6 +26,8 @@ export class UsersService {
     private mailerServive: MailerService,
     @InjectModel(User.name) private userModel: Model<UserDocument>,
     @InjectModel(Project.name) private projectModel: Model<ProjectDocument>,
+    //TODO SH: GDPR encryption - inject EncryptionService for PII operations
+    private readonly encryptionService: EncryptionService,
   ) { }
 
 
@@ -70,8 +76,12 @@ export class UsersService {
       this.validateEmailMatchesInstitution(createUserDto.email, createUserDto.institution);
     }
 
-    // first check if the user already exists
-    const existingUser = await this.userModel.findOne({ email: createUserDto.email.toLowerCase() }).exec();
+    //TODO SH: GDPR encryption - normalize email before HMAC lookup and encryption
+    const normalizedEmail = normalizeEmail(createUserDto.email);
+    const hashedEmail = this.encryptionService.hmacIndex(normalizedEmail);
+
+    //TODO SH: GDPR encryption - lookup by HMAC index only (post-cutover)
+    const existingUser = await this.userModel.findOne({ hashedEmail }).exec();
 
     if (existingUser) {
 
@@ -92,15 +102,39 @@ export class UsersService {
         // Expire code after 5 minutes
         const codeExpire = new Date(Date.now() + 5 * 60 * 1000);
 
+        //TODO SH: GDPR encryption v2 - encrypt all PII fields
+        existingUser.firstName_enc = this.encryptionService.encrypt(createUserDto.firstName);
+        existingUser.lastName_enc = this.encryptionService.encrypt(createUserDto.lastName);
+        existingUser.userType_enc = this.encryptionService.encrypt(createUserDto.userType);
+        
+        // Keep plaintext for backwards compatibility (temporary migration period)
         existingUser.firstName = createUserDto.firstName;
         existingUser.lastName = createUserDto.lastName;
+        existingUser.userType = createUserDto.userType;
+        
         existingUser.password = this.authService.hashPassword(createUserDto.password);
         // Store the verification code in hashed version
         existingUser.code = this.authService.hashPassword(code);
         existingUser.codeExpire = codeExpire;
-        // TODO is SH: Persist overview field if provided during re-registration
+        
+        //TODO SH: GDPR encryption - update encrypted fields only (post-cutover)
+        existingUser.hashedEmail = hashedEmail;
+        existingUser.email_enc = this.encryptionService.encrypt(normalizedEmail);
+        
+        //TODO SH: GDPR encryption v2 - encrypt optional fields if provided
+        if (createUserDto.username) {
+          existingUser.username_enc = this.encryptionService.encrypt(createUserDto.username);
+          existingUser.username = createUserDto.username; // Keep plaintext temporarily
+        }
+        
+        if (createUserDto.institution) {
+          existingUser.institution_enc = this.encryptionService.encrypt(createUserDto.institution);
+          existingUser.institution = createUserDto.institution; // Keep plaintext temporarily
+        }
+        
         if (createUserDto.overview !== undefined) {
-          existingUser.overview = createUserDto.overview;
+          existingUser.overview_enc = this.encryptionService.encrypt(createUserDto.overview || '');
+          existingUser.overview = createUserDto.overview; // Keep plaintext temporarily
         }
 
         await existingUser.save();
@@ -131,12 +165,30 @@ export class UsersService {
     // Expire code after 5 minutes
     const codeExpire = new Date(Date.now() + 5 * 60 * 1000);
 
+    //TODO SH: GDPR encryption v2 - encrypt all PII fields for new user
+    const firstName_enc = this.encryptionService.encrypt(createUserDto.firstName);
+    const lastName_enc = this.encryptionService.encrypt(createUserDto.lastName);
+    const userType_enc = this.encryptionService.encrypt(createUserDto.userType);
+    const email_enc = this.encryptionService.encrypt(normalizedEmail);
+    
+    // Encrypt optional fields
+    const username_enc = createUserDto.username ? this.encryptionService.encrypt(createUserDto.username) : undefined;
+    const institution_enc = createUserDto.institution ? this.encryptionService.encrypt(createUserDto.institution) : undefined;
+    const overview_enc = createUserDto.overview ? this.encryptionService.encrypt(createUserDto.overview) : undefined;
+
     const updatedCreatedUserDTO = {
       ...createUserDto,
+      hashedEmail, //TODO SH: GDPR encryption - HMAC index for lookups
+      email_enc, //TODO SH: GDPR encryption - encrypted email
+      firstName_enc, //TODO SH: GDPR encryption v2 - encrypted firstName
+      lastName_enc, //TODO SH: GDPR encryption v2 - encrypted lastName
+      userType_enc, //TODO SH: GDPR encryption v2 - encrypted userType
+      username_enc, //TODO SH: GDPR encryption v2 - encrypted username
+      institution_enc, //TODO SH: GDPR encryption v2 - encrypted institution
+      overview_enc, //TODO SH: GDPR encryption v2 - encrypted overview
       code: this.authService.hashPassword(code),
       codeExpire: codeExpire,
       password: this.authService.hashPassword(createUserDto.password),
-      // TODO is SH: overview is already part of createUserDto, will be persisted automatically
     };
 
     const targetUser = new this.userModel(updatedCreatedUserDTO);
@@ -161,9 +213,13 @@ export class UsersService {
   }
 
   async resendCode(resendDto: ResendCodeDto): Promise<any> {
+    //TODO SH: GDPR encryption - normalize email and compute HMAC for lookup
+    const normalizedEmail = normalizeEmail(resendDto.email);
+    const hashedEmail = this.encryptionService.hmacIndex(normalizedEmail);
 
+    //TODO SH: GDPR encryption - lookup by HMAC index only (post-cutover)
     const existingUser = await this.userModel
-      .findOne({ email: resendDto.email.toLowerCase(), status: false })
+      .findOne({ hashedEmail, status: false })
       .select('+code +codeExpire')
       .exec();
 
@@ -191,7 +247,7 @@ export class UsersService {
       return {
         message: 'OTP resent successfully',
         user: {
-          email: existingUser.email,
+          email: resendDto.email, //TODO SH: GDPR encryption - use input email (already normalized)
         }
       };
 
@@ -208,9 +264,13 @@ export class UsersService {
   }
 
   async verify(verifyUserDto: VerifyUserDto): Promise<any> {
+    //TODO SH: GDPR encryption - normalize email and compute HMAC for lookup (post-cutover)
+    const normalizedEmail = normalizeEmail(verifyUserDto.email);
+    const hashedEmail = this.encryptionService.hmacIndex(normalizedEmail);
+
     const existingUser = await this.userModel
       .findOne({
-        email: verifyUserDto.email.toLowerCase(),
+        hashedEmail,
         status: false,
       })
       .select('+code +codeExpire')
@@ -250,7 +310,9 @@ export class UsersService {
 
       await existingUser.save();
 
+      //TODO SH: GDPR encryption v2 - select all encrypted PII fields for response
       const updatedUser = await this.userModel.findById(existingUser._id)
+        .select('+email_enc +recoveryEmail_enc +firstName_enc +lastName_enc +username_enc +userType_enc +institution_enc +overview_enc')
         .populate({
           path: 'profilePicture',
           populate: { path: 'user', select: '_id firstName lastName email userType' }
@@ -276,10 +338,33 @@ export class UsersService {
         .lean()
         .exec();
 
+      //TODO SH: GDPR encryption v2 - decrypt all PII fields for response compatibility
+      const decryptedEmail = this.encryptionService.decrypt(updatedUser.email_enc);
+      const decryptedRecoveryEmail = updatedUser.recoveryEmail_enc
+        ? this.encryptionService.decrypt(updatedUser.recoveryEmail_enc)
+        : undefined;
+      const decryptedFirstName = this.encryptionService.decrypt(updatedUser.firstName_enc);
+      const decryptedLastName = this.encryptionService.decrypt(updatedUser.lastName_enc);
+      const decryptedUserType = this.encryptionService.decrypt(updatedUser.userType_enc);
+      const decryptedUsername = updatedUser.username_enc ? this.encryptionService.decrypt(updatedUser.username_enc) : '';
+      const decryptedInstitution = updatedUser.institution_enc ? this.encryptionService.decrypt(updatedUser.institution_enc) : '';
+      const decryptedOverview = updatedUser.overview_enc ? this.encryptionService.decrypt(updatedUser.overview_enc) : '';
+
+      //TODO SH: GDPR encryption v2 - remove encrypted fields and add decrypted values
+      const { email_enc, recoveryEmail_enc, firstName_enc, lastName_enc, username_enc, userType_enc, institution_enc, overview_enc, hashedEmail, ...userResponse } = updatedUser as any;
+
       return {
         token: token,
         refreshToken: refreshToken,
-        ...updatedUser,
+        ...userResponse,
+        email: decryptedEmail,
+        recoveryEmail: decryptedRecoveryEmail,
+        firstName: decryptedFirstName,
+        lastName: decryptedLastName,
+        userType: decryptedUserType,
+        username: decryptedUsername,
+        institution: decryptedInstitution,
+        overview: decryptedOverview,
       };
 
     } else {
@@ -358,19 +443,19 @@ export class UsersService {
         .findOne({ _id: existingUser._id })
         .populate({
           path: 'profilePicture',
-          populate: { path: 'user', select: '_id firstName lastName email userType' }
+          populate: { path: 'user', select: '_id firstName lastName userType' }
         })
         .populate({
           path: 'interestedTags',
-          populate: { path: 'user', select: '_id firstName lastName email userType' }
+          populate: { path: 'user', select: '_id firstName lastName userType' }
         })
         .populate({
           path: 'interestedCourses',
-          populate: { path: 'user', select: '_id firstName lastName email userType' }
+          populate: { path: 'user', select: '_id firstName lastName userType' }
         })
         .populate({
           path: 'studyPrograms',
-          populate: { path: 'user', select: '_id firstName lastName email userType' }
+          populate: { path: 'user', select: '_id firstName lastName userType' }
         })
         .select('+profilePicture')
         // TODO Shayan: PACKAGE UPDATE FIX - Mongoose 8.19.1 Type Issue (same as above)
@@ -397,10 +482,14 @@ export class UsersService {
   }
 
   async login(loginUserDto: LoginUserDto): Promise<any> {
-    // first check if the user already exists
+    //TODO SH: GDPR encryption - normalize email and compute HMAC for lookup
+    const normalizedEmail = normalizeEmail(loginUserDto.email);
+    const hashedEmail = this.encryptionService.hmacIndex(normalizedEmail);
+
+    //TODO SH: GDPR encryption - lookup by HMAC index only (post-cutover)
     const existingUser = await this.userModel
-      .findOne({ email: loginUserDto.email.toLowerCase(), })
-      .select('+password +isBlockedByAdmin +softDeleted')
+      .findOne({ hashedEmail })
+      .select('+password +isBlockedByAdmin +softDeleted +email_enc')
       .exec();
     if (existingUser) {
 
@@ -438,9 +527,12 @@ export class UsersService {
         existingUser.codeExpire = codeExpire;
         await existingUser.save();
 
+        //TODO SH: GDPR encryption - decrypt email for sending verification email (post-cutover)
+        const decryptedEmail = this.encryptionService.decrypt(existingUser.email_enc);
+
         try {
           await this.mailerServive.sendVerificationEmail(
-            existingUser.email,
+            decryptedEmail,
             `${existingUser.firstName} ${existingUser.lastName}`,
             code,
           );
@@ -485,35 +577,59 @@ export class UsersService {
       const token = await this.authService.generateToken(existingUser._id.toString());
       const refreshToken = await this.authService.generateToken(existingUser._id.toString(), true);
 
+      //TODO SH: GDPR encryption - select encrypted fields and decrypt for response
       const updatedUser = await this.userModel
         .findById(existingUser._id)
-        .select('+profilePicture')
+        .select('+profilePicture +email_enc +recoveryEmail_enc +firstName_enc +lastName_enc +username_enc +userType_enc +institution_enc +overview_enc')
         .populate('interestedTags')
         .populate({
           path: 'profilePicture',
-          populate: { path: 'user', select: '_id firstName lastName email userType' }
+          populate: { path: 'user', select: '_id firstName lastName userType' }
         })
         .populate({
           path: 'interestedTags',
-          populate: { path: 'user', select: '_id firstName lastName email userType' }
+          populate: { path: 'user', select: '_id firstName lastName userType' }
         })
         .populate({
           path: 'interestedCourses',
-          populate: { path: 'user', select: '_id firstName lastName email userType' }
+          populate: { path: 'user', select: '_id firstName lastName userType' }
         })
         .populate({
           path: 'studyPrograms',
-          populate: { path: 'user', select: '_id firstName lastName email userType' }
+          populate: { path: 'user', select: '_id firstName lastName userType' }
         })
         // TODO Shayan: PACKAGE UPDATE FIX - Mongoose 8.19.1 Type Issue (same as above)
         // @ts-ignore - Suppress TS2590: Expression produces a union type that is too complex to represent
         .lean()
         .exec();
 
+      //TODO SH: GDPR encryption - decrypt all PII fields for response compatibility
+      const decryptedEmail = this.encryptionService.decrypt(updatedUser.email_enc);
+      const decryptedRecoveryEmail = updatedUser.recoveryEmail_enc
+        ? this.encryptionService.decrypt(updatedUser.recoveryEmail_enc)
+        : undefined;
+      const decryptedFirstName = this.encryptionService.decrypt(updatedUser.firstName_enc);
+      const decryptedLastName = this.encryptionService.decrypt(updatedUser.lastName_enc);
+      const decryptedUserType = this.encryptionService.decrypt(updatedUser.userType_enc);
+      const decryptedUsername = updatedUser.username_enc ? this.encryptionService.decrypt(updatedUser.username_enc) : '';
+      const decryptedInstitution = updatedUser.institution_enc ? this.encryptionService.decrypt(updatedUser.institution_enc) : '';
+      const decryptedOverview = updatedUser.overview_enc ? this.encryptionService.decrypt(updatedUser.overview_enc) : '';
+
+      //TODO SH: GDPR encryption - remove encrypted fields and add decrypted values
+      const { email_enc, recoveryEmail_enc, firstName_enc, lastName_enc, username_enc, userType_enc, institution_enc, overview_enc, hashedEmail, ...userResponse } = updatedUser as any;
+
       return {
         token,
         refreshToken,
-        ...updatedUser,
+        ...userResponse,
+        email: decryptedEmail,
+        recoveryEmail: decryptedRecoveryEmail,
+        firstName: decryptedFirstName,
+        lastName: decryptedLastName,
+        userType: decryptedUserType,
+        username: decryptedUsername,
+        institution: decryptedInstitution,
+        overview: decryptedOverview,
       };
 
     } else {
@@ -535,48 +651,119 @@ export class UsersService {
     const sortField = requestQuery.sortField ? requestQuery.sortField : 'createdAt';
     const sortOrder = requestQuery.sort === 'desc' ? -1 : 1;
 
-    return this.userModel.find(asAdmin ? {} : { status: true, softDeleted: false, isBlockedByAdmin: false, })
+    //TODO SH: GDPR encryption - select encrypted fields for decryption
+    const users = await this.userModel.find(asAdmin ? {} : { status: true, softDeleted: false, isBlockedByAdmin: false, })
       .populate({
         path: 'profilePicture',
-        populate: { path: 'user', select: '_id firstName lastName email userType' }
+        populate: { path: 'user', select: '_id firstName lastName userType' }
       })
       .populate({
         path: 'interestedTags',
-        populate: { path: 'user', select: '_id firstName lastName email userType' }
+        populate: { path: 'user', select: '_id firstName lastName userType' }
       })
       .populate({
         path: 'interestedCourses',
-        populate: { path: 'user', select: '_id firstName lastName email userType' }
+        populate: { path: 'user', select: '_id firstName lastName userType' }
       })
       .populate({
         path: 'studyPrograms',
-        populate: { path: 'user', select: '_id firstName lastName email userType' }
+        populate: { path: 'user', select: '_id firstName lastName userType' }
       })
-      .select(asAdmin ? '+isBlockedByAdmin +softDeleted +code +codeExpire' : '-code -codeExpire')
+      .select(asAdmin ? '+isBlockedByAdmin +softDeleted +code +codeExpire +email_enc +recoveryEmail_enc +firstName_enc +lastName_enc +username_enc +userType_enc +institution_enc +overview_enc' : '-code -codeExpire +email_enc +recoveryEmail_enc +firstName_enc +lastName_enc +username_enc +userType_enc +institution_enc +overview_enc')
       .sort({ [sortField]: sortOrder })
+      .lean()
       .exec();
+
+    //TODO SH: GDPR encryption - decrypt all PII fields for all users in response
+    return users.map(user => {
+      const decryptedEmail = this.encryptionService.decrypt(user.email_enc);
+      const decryptedRecoveryEmail = user.recoveryEmail_enc
+        ? this.encryptionService.decrypt(user.recoveryEmail_enc)
+        : undefined;
+      const decryptedFirstName = this.encryptionService.decrypt(user.firstName_enc);
+      const decryptedLastName = this.encryptionService.decrypt(user.lastName_enc);
+      const decryptedUserType = this.encryptionService.decrypt(user.userType_enc);
+      const decryptedUsername = user.username_enc ? this.encryptionService.decrypt(user.username_enc) : '';
+      const decryptedInstitution = user.institution_enc ? this.encryptionService.decrypt(user.institution_enc) : '';
+      const decryptedOverview = user.overview_enc ? this.encryptionService.decrypt(user.overview_enc) : '';
+
+      const { email_enc, recoveryEmail_enc, firstName_enc, lastName_enc, username_enc, userType_enc, institution_enc, overview_enc, hashedEmail, ...userResponse } = user as any;
+
+      return {
+        ...userResponse,
+        email: decryptedEmail,
+        recoveryEmail: decryptedRecoveryEmail,
+        firstName: decryptedFirstName,
+        lastName: decryptedLastName,
+        userType: decryptedUserType,
+        username: decryptedUsername,
+        institution: decryptedInstitution,
+        overview: decryptedOverview,
+      } as User;
+    });
   }
 
   async findById(id: string): Promise<User> {
     try {
-      return this.userModel.findOne({ _id: new ObjectId(id), status: true, softDeleted: false, isBlockedByAdmin: false, })
+      //TODO SH: GDPR encryption - select encrypted fields for decryption
+      const user = await this.userModel.findOne({ _id: new ObjectId(id), status: true, softDeleted: false, isBlockedByAdmin: false, })
+        .select('+email_enc +recoveryEmail_enc +firstName_enc +lastName_enc +username_enc +userType_enc +institution_enc +overview_enc')
         .populate({
           path: 'profilePicture',
-          populate: { path: 'user', select: '_id firstName lastName email userType' }
+          populate: { path: 'user', select: '_id firstName lastName userType' }
         })
         .populate({
           path: 'interestedTags',
-          populate: { path: 'user', select: '_id firstName lastName email userType' }
+          populate: { path: 'user', select: '_id firstName lastName userType' }
         })
         .populate({
           path: 'interestedCourses',
-          populate: { path: 'user', select: '_id firstName lastName email userType' }
+          populate: { path: 'user', select: '_id firstName lastName userType' }
         })
         .populate({
           path: 'studyPrograms',
-          populate: { path: 'user', select: '_id firstName lastName email userType' }
+          populate: { path: 'user', select: '_id firstName lastName userType' }
         })
+        .lean()
         .exec();
+
+      if (!user) {
+        throw new HttpException(
+          {
+            status: HttpStatus.NOT_FOUND,
+            error: 'Incorrect Data',
+            message: 'User not found!',
+          },
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      //TODO SH: GDPR encryption - decrypt all PII fields for response compatibility
+      const decryptedEmail = this.encryptionService.decrypt(user.email_enc);
+      const decryptedRecoveryEmail = user.recoveryEmail_enc
+        ? this.encryptionService.decrypt(user.recoveryEmail_enc)
+        : undefined;
+      const decryptedFirstName = this.encryptionService.decrypt(user.firstName_enc);
+      const decryptedLastName = this.encryptionService.decrypt(user.lastName_enc);
+      const decryptedUserType = this.encryptionService.decrypt(user.userType_enc);
+      const decryptedUsername = user.username_enc ? this.encryptionService.decrypt(user.username_enc) : '';
+      const decryptedInstitution = user.institution_enc ? this.encryptionService.decrypt(user.institution_enc) : '';
+      const decryptedOverview = user.overview_enc ? this.encryptionService.decrypt(user.overview_enc) : '';
+
+      //TODO SH: GDPR encryption - remove encrypted fields and add decrypted values
+      const { email_enc, recoveryEmail_enc, firstName_enc, lastName_enc, username_enc, userType_enc, institution_enc, overview_enc, hashedEmail, ...userResponse } = user as any;
+
+      return {
+        ...userResponse,
+        email: decryptedEmail,
+        recoveryEmail: decryptedRecoveryEmail,
+        firstName: decryptedFirstName,
+        lastName: decryptedLastName,
+        userType: decryptedUserType,
+        username: decryptedUsername,
+        institution: decryptedInstitution,
+        overview: decryptedOverview,
+      } as User;
     }
     catch (er) {
       throw new HttpException(
@@ -592,25 +779,65 @@ export class UsersService {
 
   async findByIdAsAdmin(id: string): Promise<User> {
     try {
-      return this.userModel.findOne({ _id: new ObjectId(id) })
+      //TODO SH: GDPR encryption - select encrypted fields for admin view
+      const user = await this.userModel.findOne({ _id: new ObjectId(id) })
         .populate({
           path: 'profilePicture',
-          populate: { path: 'user', select: '_id firstName lastName email userType' }
+          populate: { path: 'user', select: '_id firstName lastName userType' }
         })
         .populate({
           path: 'interestedTags',
-          populate: { path: 'user', select: '_id firstName lastName email userType' }
+          populate: { path: 'user', select: '_id firstName lastName userType' }
         })
         .populate({
           path: 'interestedCourses',
-          populate: { path: 'user', select: '_id firstName lastName email userType' }
+          populate: { path: 'user', select: '_id firstName lastName userType' }
         })
         .populate({
           path: 'studyPrograms',
-          populate: { path: 'user', select: '_id firstName lastName email userType' }
+          populate: { path: 'user', select: '_id firstName lastName userType' }
         })
-        .select('+isBlockedByAdmin +softDeleted +code +codeExpire')
+        .select('+isBlockedByAdmin +softDeleted +code +codeExpire +email_enc +recoveryEmail_enc +firstName_enc +lastName_enc +username_enc +userType_enc +institution_enc +overview_enc')
+        .lean()
         .exec();
+
+      if (!user) {
+        throw new HttpException(
+          {
+            status: HttpStatus.NOT_FOUND,
+            error: 'Incorrect Data',
+            message: 'User not found!',
+          },
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      //TODO SH: GDPR encryption - decrypt all PII fields for admin response
+      const decryptedEmail = this.encryptionService.decrypt(user.email_enc);
+      const decryptedRecoveryEmail = user.recoveryEmail_enc
+        ? this.encryptionService.decrypt(user.recoveryEmail_enc)
+        : undefined;
+      const decryptedFirstName = this.encryptionService.decrypt(user.firstName_enc);
+      const decryptedLastName = this.encryptionService.decrypt(user.lastName_enc);
+      const decryptedUserType = this.encryptionService.decrypt(user.userType_enc);
+      const decryptedUsername = user.username_enc ? this.encryptionService.decrypt(user.username_enc) : '';
+      const decryptedInstitution = user.institution_enc ? this.encryptionService.decrypt(user.institution_enc) : '';
+      const decryptedOverview = user.overview_enc ? this.encryptionService.decrypt(user.overview_enc) : '';
+
+      //TODO SH: GDPR encryption - remove encrypted fields and add decrypted values
+      const { email_enc, recoveryEmail_enc, firstName_enc, lastName_enc, username_enc, userType_enc, institution_enc, overview_enc, hashedEmail, ...userResponse } = user as any;
+
+      return {
+        ...userResponse,
+        email: decryptedEmail,
+        recoveryEmail: decryptedRecoveryEmail,
+        firstName: decryptedFirstName,
+        lastName: decryptedLastName,
+        userType: decryptedUserType,
+        username: decryptedUsername,
+        institution: decryptedInstitution,
+        overview: decryptedOverview,
+      } as User;
     }
     catch (er) {
       throw new HttpException(
@@ -626,39 +853,90 @@ export class UsersService {
 
   async update(updateUserDto: UpdateUserDto, token: string): Promise<User> {
     const jwtUser = await this.authService.decodeJWT(token);
-    // TODO is SH: Include overview in profile update (Profile Settings)
-    await this.userModel.findOneAndUpdate({ _id: jwtUser.userId, softDeleted: false, isBlockedByAdmin: false, }, {
-      firstName: updateUserDto.firstName,
-      lastName: updateUserDto.lastName,
+    
+    //TODO SH: GDPR encryption - encrypt PII fields before update
+    const updateData: any = {
       interestedCourses: updateUserDto.interestedCourses,
       interestedTags: updateUserDto.interestedTags,
       studyPrograms: updateUserDto.studyPrograms,
-      username: updateUserDto.username,
       profilePicture: updateUserDto.profilePicture,
-      recoveryEmail: updateUserDto.recoveryEmail,
-      // TODO is SH: Allow updating overview via profile settings
-      ...(updateUserDto.overview !== undefined && { overview: updateUserDto.overview }),
-    });
+    };
 
-    return await this.userModel.findById(jwtUser.userId)
+    // Encrypt PII fields if provided
+    if (updateUserDto.firstName !== undefined) {
+      updateData.firstName = updateUserDto.firstName;
+      updateData.firstName_enc = this.encryptionService.encrypt(updateUserDto.firstName);
+    }
+    if (updateUserDto.lastName !== undefined) {
+      updateData.lastName = updateUserDto.lastName;
+      updateData.lastName_enc = this.encryptionService.encrypt(updateUserDto.lastName);
+    }
+    if (updateUserDto.username !== undefined) {
+      updateData.username = updateUserDto.username;
+      updateData.username_enc = updateUserDto.username ? this.encryptionService.encrypt(updateUserDto.username) : undefined;
+    }
+    if (updateUserDto.overview !== undefined) {
+      updateData.overview = updateUserDto.overview;
+      updateData.overview_enc = updateUserDto.overview ? this.encryptionService.encrypt(updateUserDto.overview) : undefined;
+    }
+    if (updateUserDto.recoveryEmail !== undefined) {
+      updateData.recoveryEmail = updateUserDto.recoveryEmail;
+      updateData.recoveryEmail_enc = updateUserDto.recoveryEmail ? this.encryptionService.encrypt(updateUserDto.recoveryEmail) : undefined;
+    }
+
+    await this.userModel.findOneAndUpdate(
+      { _id: jwtUser.userId, softDeleted: false, isBlockedByAdmin: false },
+      updateData
+    );
+
+    //TODO SH: GDPR encryption - select encrypted fields and decrypt for response
+    const user = await this.userModel.findById(jwtUser.userId)
+      .select('+profilePicture +email_enc +recoveryEmail_enc +firstName_enc +lastName_enc +username_enc +userType_enc +institution_enc +overview_enc')
       .populate({
         path: 'profilePicture',
-        populate: { path: 'user', select: '_id firstName lastName email userType' }
+        populate: { path: 'user', select: '_id firstName lastName userType' }
       })
       .populate({
         path: 'interestedTags',
-        populate: { path: 'user', select: '_id firstName lastName email userType' }
+        populate: { path: 'user', select: '_id firstName lastName userType' }
       })
       .populate({
         path: 'interestedCourses',
-        populate: { path: 'user', select: '_id firstName lastName email userType' }
+        populate: { path: 'user', select: '_id firstName lastName userType' }
       })
       .populate({
         path: 'studyPrograms',
-        populate: { path: 'user', select: '_id firstName lastName email userType' }
+        populate: { path: 'user', select: '_id firstName lastName userType' }
       })
-      .select('+profilePicture')
+      .lean()
       .exec();
+
+    //TODO SH: GDPR encryption - decrypt all PII fields for response compatibility
+    const decryptedEmail = this.encryptionService.decrypt(user.email_enc);
+    const decryptedRecoveryEmail = user.recoveryEmail_enc
+      ? this.encryptionService.decrypt(user.recoveryEmail_enc)
+      : undefined;
+    const decryptedFirstName = this.encryptionService.decrypt(user.firstName_enc);
+    const decryptedLastName = this.encryptionService.decrypt(user.lastName_enc);
+    const decryptedUserType = this.encryptionService.decrypt(user.userType_enc);
+    const decryptedUsername = user.username_enc ? this.encryptionService.decrypt(user.username_enc) : '';
+    const decryptedInstitution = user.institution_enc ? this.encryptionService.decrypt(user.institution_enc) : '';
+    const decryptedOverview = user.overview_enc ? this.encryptionService.decrypt(user.overview_enc) : '';
+
+    //TODO SH: GDPR encryption - remove encrypted fields and add decrypted values
+    const { email_enc, recoveryEmail_enc, firstName_enc, lastName_enc, username_enc, userType_enc, institution_enc, overview_enc, hashedEmail, ...userResponse } = user as any;
+
+    return {
+      ...userResponse,
+      email: decryptedEmail,
+      recoveryEmail: decryptedRecoveryEmail,
+      firstName: decryptedFirstName,
+      lastName: decryptedLastName,
+      userType: decryptedUserType,
+      username: decryptedUsername,
+      institution: decryptedInstitution,
+      overview: decryptedOverview,
+    } as User;
   }
 
   async delete(id: string): Promise<User> {
@@ -705,7 +983,9 @@ export class UsersService {
       softDeleted: false,
       isBlockedByAdmin: false,
       status: true
-    }).exec();
+    })
+      .select('+email_enc +recoveryEmail_enc')
+      .exec();
 
     if (!existingUser) {
       throw new HttpException(
@@ -747,9 +1027,15 @@ export class UsersService {
     existingUser.codeExpire = codeExpire;
     await existingUser.save();
 
+    //TODO SH: GDPR encryption - decrypt emails for notification (post-cutover)
+    const decryptedEmail = this.encryptionService.decrypt(existingUser.email_enc);
+    const decryptedRecoveryEmail = existingUser.recoveryEmail_enc
+      ? this.encryptionService.decrypt(existingUser.recoveryEmail_enc)
+      : decryptedEmail;
+
     try {
       await this.mailerServive.sendSoftDeleteConfirmationEmail(
-        useRecoveryEmail ? (existingUser.recoveryEmail ? existingUser.recoveryEmail : existingUser.email) : existingUser.email,
+        useRecoveryEmail ? decryptedRecoveryEmail : decryptedEmail,
         `${existingUser.firstName} ${existingUser.lastName}`,
         code,
       );
@@ -760,7 +1046,7 @@ export class UsersService {
     return {
       message: 'otp_sent_success',
       user: {
-        email: useRecoveryEmail ? (existingUser.recoveryEmail ? existingUser.recoveryEmail : existingUser.email) : existingUser.email,
+        email: useRecoveryEmail ? decryptedRecoveryEmail : decryptedEmail,
       }
     };
   }
@@ -772,7 +1058,9 @@ export class UsersService {
       softDeleted: false,
       isBlockedByAdmin: false,
       status: true
-    }).exec();
+    })
+      .select('+email_enc +recoveryEmail_enc')
+      .exec();
 
     if (!existingUser) {
       throw new HttpException(
@@ -794,9 +1082,15 @@ export class UsersService {
     existingUser.codeExpire = codeExpire;
     await existingUser.save();
 
+    //TODO SH: GDPR encryption - decrypt emails for notification (post-cutover, softAnonymizedDeleteUserRequest)
+    const decryptedEmail = this.encryptionService.decrypt(existingUser.email_enc);
+    const decryptedRecoveryEmail = existingUser.recoveryEmail_enc
+      ? this.encryptionService.decrypt(existingUser.recoveryEmail_enc)
+      : decryptedEmail;
+
     try {
       await this.mailerServive.sendSoftDeleteConfirmationEmail(
-        useRecoveryEmail ? (existingUser.recoveryEmail ? existingUser.recoveryEmail : existingUser.email) : existingUser.email,
+        useRecoveryEmail ? decryptedRecoveryEmail : decryptedEmail,
         `${existingUser.firstName} ${existingUser.lastName}`,
         code,
       );
@@ -807,7 +1101,7 @@ export class UsersService {
     return {
       message: 'otp_sent_success',
       user: {
-        email: useRecoveryEmail ? (existingUser.recoveryEmail ? existingUser.recoveryEmail : existingUser.email) : existingUser.email,
+        email: useRecoveryEmail ? decryptedRecoveryEmail : decryptedEmail,
       }
     };
 
@@ -820,7 +1114,9 @@ export class UsersService {
       softDeleted: false,
       isBlockedByAdmin: false,
       status: true
-    }).exec();
+    })
+      .select('+email_enc +recoveryEmail_enc')
+      .exec();
 
     if (!existingUser) {
       throw new HttpException(
@@ -842,9 +1138,15 @@ export class UsersService {
     existingUser.codeExpire = codeExpire;
     await existingUser.save();
 
+    //TODO SH: GDPR encryption - decrypt emails for notification (post-cutover, softKeepDataDeleteUserRequest)
+    const decryptedEmail = this.encryptionService.decrypt(existingUser.email_enc);
+    const decryptedRecoveryEmail = existingUser.recoveryEmail_enc
+      ? this.encryptionService.decrypt(existingUser.recoveryEmail_enc)
+      : decryptedEmail;
+
     try {
       await this.mailerServive.sendSoftDeleteConfirmationEmail(
-        useRecoveryEmail ? (existingUser.recoveryEmail ? existingUser.recoveryEmail : existingUser.email) : existingUser.email,
+        useRecoveryEmail ? decryptedRecoveryEmail : decryptedEmail,
         `${existingUser.firstName} ${existingUser.lastName}`,
         code,
       );
@@ -855,7 +1157,7 @@ export class UsersService {
     return {
       message: 'otp_sent_success',
       user: {
-        email: useRecoveryEmail ? (existingUser.recoveryEmail ? existingUser.recoveryEmail : existingUser.email) : existingUser.email,
+        email: useRecoveryEmail ? decryptedRecoveryEmail : decryptedEmail,
       }
     };
 
@@ -872,7 +1174,7 @@ export class UsersService {
       isBlockedByAdmin: false,
       status: true
     })
-      .select('+code +codeExpire')
+      .select('+code +codeExpire +email_enc +recoveryEmail_enc')
       .exec();
 
     if (!existingUser) {
@@ -908,22 +1210,29 @@ export class UsersService {
       );
     }
 
+    //TODO SH: GDPR encryption - erasure procedure (post-cutover)
+    // Nullify encrypted email fields to comply with "right to be forgotten"
     var userDbData = {
       firstName: 'unknown',
       lastName: 'unknown',
       username: 'unknown',
-      email: this.authService.hashPassword(existingUser.email),
+      hashedEmail: null, //TODO SH: GDPR encryption - nullify HMAC index (sparse index allows null)
+      email_enc: null,   //TODO SH: GDPR encryption - nullify encrypted email
+      recoveryEmail_enc: null, //TODO SH: GDPR encryption - nullify encrypted recovery email
       softDeleted: true,
       isBlockedByAdmin: false,
       status: false,
     };
 
     if (keepData) {
+      //TODO SH: GDPR encryption - keep name/username but still nullify email per GDPR
       userDbData = {
         firstName: existingUser.firstName,
         lastName: existingUser.lastName,
         username: existingUser.username,
-        email: this.authService.hashPassword(existingUser.email),
+        hashedEmail: null, //TODO SH: GDPR encryption - nullify HMAC index
+        email_enc: null,   //TODO SH: GDPR encryption - nullify encrypted email
+        recoveryEmail_enc: null, //TODO SH: GDPR encryption - nullify encrypted recovery email
         softDeleted: true,
         isBlockedByAdmin: false,
         status: false,
@@ -932,9 +1241,17 @@ export class UsersService {
 
     const result = await this.userModel.findByIdAndUpdate(existingUser._id, userDbData).exec();
 
+    //TODO SH: GDPR encryption - decrypt email for sending deletion confirmation
+    const emailForNotification = existingUser.email_enc 
+      ? this.encryptionService.decrypt(existingUser.email_enc)
+      : 'unknown@example.com';
+    const recoveryEmailForNotification = existingUser.recoveryEmail_enc
+      ? this.encryptionService.decrypt(existingUser.recoveryEmail_enc)
+      : emailForNotification;
+
     try {
       await this.mailerServive.sendSoftDeletedSuccessEmail(
-        useRecoveryEmail ? (existingUser.recoveryEmail ? existingUser.recoveryEmail : existingUser.email) : existingUser.email,
+        useRecoveryEmail ? recoveryEmailForNotification : emailForNotification,
         `${existingUser.firstName} ${existingUser.lastName}`,
       );
     } catch (er) {
@@ -944,18 +1261,24 @@ export class UsersService {
     return {
       message: 'user_deleted_success',
       user: {
-        email: result.email,
+        email: useRecoveryEmail ? recoveryEmailForNotification : emailForNotification, //TODO SH: GDPR encryption - use decrypted email from above
       }
     };
   }
 
   async sendResetPasswordRequest(resetPasswordRequestDto: ResetPasswordRequestDto, useRecoveryEmail: boolean = false) {
 
+    //TODO SH: GDPR encryption - normalize email and compute HMAC for lookup (post-cutover)
+    const normalizedEmail = normalizeEmail(resetPasswordRequestDto.email);
+    const hashedEmail = this.encryptionService.hmacIndex(normalizedEmail);
+
     const existingUser = await this.userModel.findOne({
-        email: resetPasswordRequestDto.email,
+        hashedEmail,
         softDeleted: false,
         isBlockedByAdmin: false,
-      }).exec();
+      })
+      .select('+email_enc +recoveryEmail_enc')
+      .exec();
 
     if (!existingUser) {
       throw new HttpException(
@@ -988,9 +1311,15 @@ export class UsersService {
     existingUser.codeExpire = codeExpire;
     await existingUser.save();
 
+    //TODO SH: GDPR encryption - decrypt emails for notification (post-cutover)
+    const decryptedEmail = this.encryptionService.decrypt(existingUser.email_enc);
+    const decryptedRecoveryEmail = existingUser.recoveryEmail_enc
+      ? this.encryptionService.decrypt(existingUser.recoveryEmail_enc)
+      : decryptedEmail;
+
     try {
       await this.mailerServive.sendResetPasswordCodeEmail(
-        useRecoveryEmail ? (existingUser.recoveryEmail ? existingUser.recoveryEmail : existingUser.email) : existingUser.email,
+        useRecoveryEmail ? decryptedRecoveryEmail : decryptedEmail,
         `${existingUser.firstName} ${existingUser.lastName}`,
         code,
       );
@@ -1001,13 +1330,22 @@ export class UsersService {
     return {
       message: 'OTP for reseting password sent successfully',
       user: {
-        email: useRecoveryEmail ? (existingUser.recoveryEmail ? existingUser.recoveryEmail : existingUser.email) : existingUser.email,
+        email: useRecoveryEmail ? decryptedRecoveryEmail : decryptedEmail,
       }
     };
   }
 
   async resetPassword(resetPasswordDto: ResetPasswordDto) {
-    const existingUser = await this.userModel.findOneAndUpdate({ email: resetPasswordDto.email, softDeleted: false, isBlockedByAdmin: false, }, {
+    //TODO SH: GDPR encryption - normalize email and compute HMAC for lookup
+    const normalizedEmail = normalizeEmail(resetPasswordDto.email);
+    const hashedEmail = this.encryptionService.hmacIndex(normalizedEmail);
+
+    //TODO SH: GDPR encryption - lookup by HMAC index only (post-cutover)
+    const existingUser = await this.userModel.findOneAndUpdate({
+      hashedEmail,
+      softDeleted: false,
+      isBlockedByAdmin: false
+    }, {
       softDeleted: false,
       isBlockedByAdmin: false,
       status: true
@@ -1061,8 +1399,12 @@ export class UsersService {
   }
 
   async createByAdmin(createUserDto: CreateUserDto): Promise<any> {
-    // first check if the user already exists
-    const existingUser = await this.userModel.findOne({ email: createUserDto.email.toLowerCase() }).exec();
+    //TODO SH: GDPR encryption - normalize email and compute HMAC for lookup
+    const normalizedEmail = normalizeEmail(createUserDto.email);
+    const hashedEmail = this.encryptionService.hmacIndex(normalizedEmail);
+
+    //TODO SH: GDPR encryption - lookup by HMAC index only (post-cutover)
+    const existingUser = await this.userModel.findOne({ hashedEmail }).exec();
 
     if (existingUser) {
 
@@ -1077,9 +1419,14 @@ export class UsersService {
 
     }
 
+    //TODO SH: GDPR encryption - encrypt email (post-cutover: encrypted only)
+    const email_enc = this.encryptionService.encrypt(normalizedEmail);
+
     // TODO is SH: Include overview when admin creates users
     const updatedCreatedUserDTO = {
       ...createUserDto,
+      hashedEmail, //TODO SH: GDPR encryption - HMAC index
+      email_enc, //TODO SH: GDPR encryption - encrypted email
       password: this.authService.hashPassword(createUserDto.password),
       isBlockedByAdmin: false,
       softDeleted: false,
@@ -1095,7 +1442,7 @@ export class UsersService {
       data: {
         user: {
           _id: targetUser._id,
-          email: targetUser.email,
+          email: normalizedEmail, //TODO SH: GDPR encryption - use input email (post-cutover)
           firstName: targetUser.firstName,
           lastName: targetUser.lastName,
           username: targetUser.username,

@@ -1,6 +1,11 @@
 import { User } from "../schemas/user.schema";
 
-export const usersMock: User[] = [
+//TODO SH: GDPR encryption - seed data disabled post-cutover (plaintext email field removed)
+// To re-enable: create users via API with encrypted fields, or update seed to use hashedEmail + email_enc
+export const usersMock: User[] = [];
+
+/* DISABLED - requires encrypted email format
+export const usersMockOLD: User[] = [
     {
         firstName: 'John',
         lastName: 'Doe',
@@ -361,3 +366,4 @@ export const usersMock: User[] = [
         codeExpire: null, isMockData: true,
     }
 ];
+*/

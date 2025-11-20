@@ -10,11 +10,14 @@ import { UploadSchema } from './upload/schema/upload.schema';
 import { UploadService } from './upload/services/upload.service';
 import { configuration } from 'config/configuration';
 import { AdminUploadsController } from './upload/controller/admin-upload.controller';
+//TODO SH: GDPR encryption - import EncryptionModule for email decryption in uploads
+import { EncryptionModule } from 'src/encryption/encryption.module';
 
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: 'Upload', schema: UploadSchema }]),
     AuthModule,
+    EncryptionModule, //TODO SH: GDPR encryption - enable email decryption
     ConfigModule.forRoot(),
     MulterModule.registerAsync({
       imports: [ConfigModule],

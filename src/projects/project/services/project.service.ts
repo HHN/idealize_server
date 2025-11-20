@@ -14,6 +14,8 @@ import { ReportService } from 'src/reports/report/services/report.service';
 import { UserDocument } from 'src/users/user/schemas/user.schema';
 import { ArchiveDocument } from 'src/archives/archive/schemas/archive.schema';
 import { TagDocument } from 'src/tags/tag/schemas/tag.schema';
+//TODO SH: GDPR encryption - import EncryptionService for email decryption in nested populates
+import { EncryptionService } from 'src/encryption/encryption.service';
 
 @Injectable()
 export class ProjectsService {
@@ -28,6 +30,8 @@ export class ProjectsService {
     private readonly commentsService: CommentsService,
     private readonly joinRequestService: JoinRequestsService,
     private readonly reportProjectService: ReportService,
+    //TODO SH: GDPR encryption - inject EncryptionService for decrypting populated user emails
+    private readonly encryptionService: EncryptionService,
   ) { }
 
   async create(createProjectDto: CreateProjectDto, token: string): Promise<Project> {
@@ -51,16 +55,18 @@ export class ProjectsService {
       await this.joinRequestService.createNew(joinrequestDto, token, true);
     }
 
-
-    return await this.projectModel.findById(createdProject._id)
+    //TODO SH: GDPR encryption - select +email_enc for owner/teamMembers/attachments.user, then decrypt
+    const project = await this.projectModel.findById(createdProject._id)
       .populate({
         path: 'owner',
+        select: '+email_enc', // Select encrypted field
         populate: {
           path: 'profilePicture',
           model: 'Upload',
           populate: {
             path: 'user',
-            model: 'User'
+            model: 'User',
+            select: '+email_enc' // Nested user in profilePicture
           }
         }
       })
@@ -86,7 +92,7 @@ export class ProjectsService {
       })
       .populate({
         path: 'teamMembers',
-        select: '_id, firstName lastName email userType',
+        select: '_id, firstName lastName email userType +email_enc', // Select encrypted field
       })
       // .populate('profilePicture')
       .populate('tags')
@@ -94,8 +100,30 @@ export class ProjectsService {
       .populate('thumbnail')
       .populate({
         path: 'attachments',
-        populate: { path: 'user', select: '_id firstName lastName email userType' }
+        populate: { 
+          path: 'user', 
+          select: '_id firstName lastName email userType +email_enc' // Select encrypted field
+        }
       });
+
+    // Decrypt user PII in owner, teamMembers, and nested users
+    const projectObj = project.toObject();
+    if (projectObj.owner) {
+      projectObj.owner = this.decryptUserPII(projectObj.owner);
+    }
+    if (projectObj.teamMembers && projectObj.teamMembers.length > 0) {
+      projectObj.teamMembers = this.decryptUserPII(projectObj.teamMembers);
+    }
+    if (projectObj.attachments && projectObj.attachments.length > 0) {
+      projectObj.attachments = projectObj.attachments.map((att: any) => {
+        if (att.user) {
+          att.user = this.decryptUserPII(att.user);
+        }
+        return att;
+      });
+    }
+
+    return projectObj as Project;
   }
 
   async createByAdmin(createProjectDto: CreateProjectDto): Promise<Project> {
@@ -129,15 +157,18 @@ export class ProjectsService {
 
     const likedProjectIds = await this.projectLikeService.findAll("", jwtUser.userId);
 
+    //TODO SH: GDPR encryption - select +email_enc for owner/teamMembers/attachments.user
     const projectsQuery = this.projectModel.find(query)
       .populate({
         path: 'owner',
+        select: '+email_enc', // Select encrypted field
         populate: {
           path: 'profilePicture',
           model: 'Upload',
           populate: {
             path: 'user',
-            model: 'User'
+            model: 'User',
+            select: '+email_enc' // Nested user
           }
         }
       })
@@ -162,14 +193,17 @@ export class ProjectsService {
       })
       .populate({
         path: 'teamMembers',
-        select: '_id, firstName lastName email userType',
+        select: '_id, firstName lastName email userType +email_enc', // Select encrypted field
       })
       .populate('tags')
       .populate('courses')
       .populate('thumbnail')
       .populate({
         path: 'attachments',
-        populate: { path: 'user', select: '_id firstName lastName email userType' }
+        populate: { 
+          path: 'user', 
+          select: '_id firstName lastName email userType +email_enc' // Select encrypted field
+        }
       });
 
     const total = await this.projectModel.countDocuments(query);
@@ -187,12 +221,30 @@ export class ProjectsService {
       const likes = await this.projectLikeService.likesCount(project._id.toString());
       const isArchived = await this.archiveModel.findOne({ projectId: project._id.toString() });
 
+      //TODO SH: GDPR encryption - select +email_enc for pendingMembers and decrypt
       var pendingMembers = [];
       const pendingMembersId = await this.joinRequestService.findPendingMembers(project._id.toString());
       if (pendingMembersId && pendingMembersId.length > 0) {
-        pendingMembers = (await this.userModel.find({ _id: { $in: pendingMembersId } })
-          .lean()
-          .select('_id firstName lastName email userType'))
+        const pendingMembersRaw = await this.userModel.find({ _id: { $in: pendingMembersId } })
+          .select('_id firstName lastName email userType +email_enc') // Select encrypted field
+          .lean();
+        pendingMembers = this.decryptUserPII(pendingMembersRaw);
+      }
+
+      // Decrypt user PII in owner, teamMembers, and attachments.user
+      if (project.owner) {
+        project.owner = this.decryptUserPII(project.owner);
+      }
+      if (project.teamMembers && project.teamMembers.length > 0) {
+        project.teamMembers = this.decryptUserPII(project.teamMembers);
+      }
+      if (project.attachments && project.attachments.length > 0) {
+        project.attachments = project.attachments.map((att: any) => {
+          if (att.user) {
+            att.user = this.decryptUserPII(att.user);
+          }
+          return att;
+        });
       }
 
       projectsWithLikes.push({
@@ -264,15 +316,16 @@ export class ProjectsService {
       ors.push({ 'tags': { $in: [...filteredTags.map(item => item._id)] } });
     }
 
+    //TODO SH: GDPR encryption - select +email_enc for owner/teamMembers and decrypt
     const projectsQuery = this.projectModel.find()
       .or(ors)
       .populate({
         path: 'owner',
-        select: '_id, firstName lastName email userType',
+        select: '_id, firstName lastName email userType +email_enc', // Select encrypted field
       })
       .populate({
         path: 'teamMembers',
-        select: '_id, firstName lastName email userType',
+        select: '_id, firstName lastName email userType +email_enc', // Select encrypted field
       })
       .populate('courses')
       .populate('tags');
@@ -291,6 +344,14 @@ export class ProjectsService {
       const comments = await this.commentsService.findAllOfCommentsCount(project._id.toString());
       const likes = await this.projectLikeService.likesCount(project._id.toString());
       const isArchived = await this.archiveModel.findOne({ userId: jwtUser.userId, projectId: project._id.toString() });
+
+      // Decrypt user PII in owner and teamMembers
+      if (project.owner) {
+        project.owner = this.decryptUserPII(project.owner);
+      }
+      if (project.teamMembers && project.teamMembers.length > 0) {
+        project.teamMembers = this.decryptUserPII(project.teamMembers);
+      }
 
       projectsWithLikes.push({
         ...project,
@@ -311,14 +372,17 @@ export class ProjectsService {
     const jwtUser = await this.authService.decodeJWT(token);
     const likedProjectIds = await this.projectLikeService.findAll("", jwtUser.userId);
 
+    //TODO SH: GDPR encryption - select +email_enc for owner/teamMembers/attachments.user and decrypt
     const project = await this.projectModel.findById(id).populate({
       path: 'owner',
+      select: '+email_enc', // Select encrypted field
       populate: {
         path: 'profilePicture',
         model: 'Upload',
         populate: {
           path: 'user',
-          model: 'User'
+          model: 'User',
+          select: '+email_enc' // Nested user
         }
       },
     })
@@ -343,14 +407,17 @@ export class ProjectsService {
       })
       .populate({
         path: 'teamMembers',
-        select: '_id, firstName lastName email userType',
+        select: '_id, firstName lastName email userType +email_enc', // Select encrypted field
       })
       .populate('tags')
       .populate('courses')
       .populate('thumbnail')
       .populate({
         path: 'attachments',
-        populate: { path: 'user', select: '_id firstName lastName email userType' }
+        populate: { 
+          path: 'user', 
+          select: '_id firstName lastName email userType +email_enc' // Select encrypted field
+        }
       })
       .lean();
 
@@ -361,6 +428,21 @@ export class ProjectsService {
     const joinedStatus = await this.joinRequestService.checkIfUserAlreadySentJoinRequest(project._id.toString(), jwtUser.userId);
     const isReportedProject = await this.reportProjectService.isReported(project._id.toString(), jwtUser.userId);
 
+    // Decrypt user PII in owner, teamMembers, and attachments.user
+    if (project.owner) {
+      project.owner = this.decryptUserPII(project.owner);
+    }
+    if (project.teamMembers && project.teamMembers.length > 0) {
+      project.teamMembers = this.decryptUserPII(project.teamMembers);
+    }
+    if (project.attachments && project.attachments.length > 0) {
+      project.attachments = project.attachments.map((att: any) => {
+        if (att.user) {
+          att.user = this.decryptUserPII(att.user);
+        }
+        return att;
+      });
+    }
 
     return {
       ...project,
@@ -719,4 +801,53 @@ export class ProjectsService {
       );
     }
   }
+
+  //TODO SH: GDPR encryption - helper method to decrypt user PII in populated objects
+  /**
+   * Decrypts email_enc (and other PII *_enc fields) in a user object or array of user objects.
+   * Removes email_enc, hashedEmail, and other sensitive fields from response.
+   * @param user - Single user object, array of users, or null/undefined
+   * @returns Same structure with decrypted email field
+   */
+  private decryptUserPII(user: any): any {
+    if (!user) return user;
+
+    // Handle array of users
+    if (Array.isArray(user)) {
+      return user.map(u => this.decryptUserPII(u));
+    }
+
+    // Handle single user object
+    const userObj = user.toObject ? user.toObject() : user;
+
+    if (userObj.email_enc) {
+      try {
+        userObj.email = this.encryptionService.decrypt(userObj.email_enc);
+      } catch (error) {
+        console.error('Failed to decrypt email for user:', userObj._id, error);
+        userObj.email = ''; // Fallback to empty string
+      }
+      delete userObj.email_enc;
+    }
+
+    // Remove other encrypted/sensitive fields from response
+    delete userObj.hashedEmail;
+    delete userObj.firstName_enc;
+    delete userObj.lastName_enc;
+    delete userObj.username_enc;
+    delete userObj.userType_enc;
+    delete userObj.institution_enc;
+    delete userObj.overview_enc;
+    delete userObj.recoveryEmail_enc;
+
+    // Recursively decrypt nested user objects (e.g., profilePicture.user)
+    if (userObj.profilePicture && typeof userObj.profilePicture === 'object') {
+      if (userObj.profilePicture.user) {
+        userObj.profilePicture.user = this.decryptUserPII(userObj.profilePicture.user);
+      }
+    }
+
+    return userObj;
+  }
 }
+

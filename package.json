@@ -19,7 +19,12 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "migrate:schema": "ts-node -r tsconfig-paths/register src/scripts/migrate-encryption-schema.ts",
+    "backfill:encryption": "ts-node -r tsconfig-paths/register src/scripts/backfill-encryption.ts",
+    "cutover:indexes": "ts-node -r tsconfig-paths/register src/scripts/cutover-indexes.ts",
+    "encrypt:existing-users": "cross-env NODE_ENV=staging ts-node -r tsconfig-paths/register src/scripts/encrypt-existing-users.ts",
+    "migrate:encrypt-users": "cross-env NODE_ENV=staging ts-node -r tsconfig-paths/register src/migrations/encrypt-users.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.3.10",

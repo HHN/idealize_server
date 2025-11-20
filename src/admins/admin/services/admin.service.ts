@@ -4,12 +4,18 @@ import { Model } from "mongoose";
 import { AuthService } from "src/auth/auth.service";
 import { CreateAdminDto, LoginAdminDto } from "../dtos/admin.dtos";
 import { Admin, AdminDocument } from "../schemas/admin.schema";
+//TODO SH: GDPR encryption - import EncryptionService for email encryption
+import { EncryptionService } from 'src/encryption/encryption.service';
+//TODO SH: GDPR encryption - import email normalization utility
+import { normalizeEmail } from 'src/shared/utils/email.utils';
 
 @Injectable()
 export class AdminService {
     constructor(
         @InjectModel(Admin.name) private adminModel: Model<AdminDocument>,
         private authService: AuthService,
+        //TODO SH: GDPR encryption - inject EncryptionService for PII operations
+        private readonly encryptionService: EncryptionService,
     ) { }
 
     async create(admin: CreateAdminDto): Promise<any> {
@@ -27,8 +33,13 @@ export class AdminService {
             );
         }
 
+        //TODO SH: GDPR encryption - normalize email and compute HMAC for lookup
+        const normalizedEmail = normalizeEmail(admin.email);
+        const hashedEmail = this.encryptionService.hmacIndex(normalizedEmail);
+
+        //TODO SH: GDPR encryption - lookup by HMAC index only (post-cutover)
         const existingUser = await this.adminModel
-            .findOne({ email: admin.email.toLowerCase() })
+            .findOne({ hashedEmail })
             .exec();
 
         if (existingUser) {
@@ -42,8 +53,13 @@ export class AdminService {
             );
         }
 
+        //TODO SH: GDPR encryption - encrypt email (post-cutover: encrypted only)
+        const email_enc = this.encryptionService.encrypt(normalizedEmail);
+
         const updatedCreatedUserDTO = {
             ...admin,
+            hashedEmail, //TODO SH: GDPR encryption - HMAC index
+            email_enc, //TODO SH: GDPR encryption - encrypted email
             password: this.authService.hashPassword(admin.password),
         };
 
@@ -65,20 +81,30 @@ export class AdminService {
                 { status: true },
                 { new: true }
             )
-            .select('-password');
+            .select('-password +email_enc');
         
         const updatedUser = await query.lean().exec();
 
-        return Object.assign({}, updatedUser, { token, refreshToken });
+        //TODO SH: GDPR encryption - decrypt email for response compatibility
+        const decryptedEmail = this.encryptionService.decrypt(updatedUser.email_enc);
+        const { email_enc: _email_enc, hashedEmail: _hashedEmail, ...adminResponse } = updatedUser;
+
+        return Object.assign({}, adminResponse, { 
+            token, 
+            refreshToken,
+            email: decryptedEmail,
+        });
     }
 
     async login(user: LoginAdminDto): Promise<any> {
+        //TODO SH: GDPR encryption - normalize email and compute HMAC for lookup
+        const normalizedEmail = normalizeEmail(user.email);
+        const hashedEmail = this.encryptionService.hmacIndex(normalizedEmail);
+
+        //TODO SH: GDPR encryption - lookup by HMAC index only (post-cutover)
         const existingUser = await this.adminModel.findOne(
-            {
-                email: user.email.toLowerCase(),
-                status: true
-            })
-            .select('+password')
+            { hashedEmail, status: true })
+            .select('+password +email_enc')
             .exec();
 
         if (!existingUser) {
@@ -111,14 +137,19 @@ export class AdminService {
         // @ts-ignore - Suppress TS2590: Expression produces a union type that is too complex to represent
         const updatedUser: any = await this.adminModel
             .findByIdAndUpdate(existingUser._id, { token, refreshToken }, { new: true })
-            .select('-password')
+            .select('-password +email_enc')
             .lean()
             .exec();
+
+        //TODO SH: GDPR encryption - decrypt email for response compatibility
+        const decryptedEmail = this.encryptionService.decrypt(updatedUser.email_enc);
+        const { email_enc, hashedEmail: _hashedEmail, ...adminResponse } = updatedUser;
 
         return {
             token,
             refreshToken,
-            ...updatedUser
+            ...adminResponse,
+            email: decryptedEmail,
         };
     }
 
@@ -153,13 +184,19 @@ export class AdminService {
             // @ts-ignore - Suppress TS2590: Expression produces a union type that is too complex to represent
             const userData: any = await this.adminModel
                 .findOne({ _id: existingUser._id })
+                .select('+email_enc')
                 .lean()
                 .exec();
+
+            //TODO SH: GDPR encryption - decrypt email for response compatibility
+            const decryptedEmail = this.encryptionService.decrypt(userData.email_enc);
+            const { email_enc: _email_enc, hashedEmail: _hashedEmail, ...adminResponse } = userData;
 
             return {
                 token: newToken,
                 refreshToken: newRefreshToken,
-                ...userData
+                ...adminResponse,
+                email: decryptedEmail,
             };
 
         } else {
