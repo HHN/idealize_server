@@ -39,7 +39,7 @@ export class RecommendationService {
   ): Promise<{ projects: any[]; total: number; algorithm: string }> {
     // Decode JWT to get user ID
     const jwtUser = await this.authService.decodeJWT(token);
-    console.log("🔍 DEBUG - Decoded JWT User:", jwtUser, "token: ", token);
+    console.log("DEBUG - Decoded JWT User:", jwtUser, "token: ", token);
     const userId = jwtUser.userId;
     const userName = jwtUser.name;
 
@@ -83,9 +83,9 @@ export class RecommendationService {
     // prototype (not functional) -> include users with their interests into the recommendations
     // const userProgramIds = user.studyPrograms ? user.studyPrograms.map((program: any) => program._id.toString()) : [];
 
-    console.log("🔍 DEBUG - User Tag IDs:", userTagIds);
-    console.log("🔍 DEBUG - User Course IDs:", userCourseIds);
-    // console.log('🔍 DEBUG - User Study Program IDs:', userProgramIds);
+    console.log("DEBUG - User Tag IDs:", userTagIds);
+    console.log("DEBUG - User Course IDs:", userCourseIds);
+    // console.log('DEBUG - User Study Program IDs:', userProgramIds);
 
     // Get all non-draft projects (excluding user's own projects and already liked)
     const allProjects = await this.projectModel
@@ -109,8 +109,8 @@ export class RecommendationService {
     //   .populate('studyPrograms')
     //   .lean();
 
-    // console.log('🔍 DEBUG - Total projects found:', allProjects.length);
-    // console.log('🔍 DEBUG - First 3 projects tags:', allProjects.slice(0, 3).map(p => ({
+    // console.log('DEBUG - Total projects found:', allProjects.length);
+    // console.log('DEBUG - First 3 projects tags:', allProjects.slice(0, 3).map(p => ({
     //   title: (p as any).title,
     //   tags: (p as any).tags.map((t: any) => t.name || t._id)
     // })));
@@ -181,8 +181,8 @@ export class RecommendationService {
     // const paginatedProjects = projectsWithScores.slice(skip, skip + limit);
     const total = projectsWithScores.length;
 
-    // console.log('🔍 DEBUG - For you - content-based:', paginatedProjects);
-    console.log("🔍 DEBUG - For you - content-based:", projectsWithScores);
+    // console.log('DEBUG - For you - content-based:', paginatedProjects);
+    console.log("DEBUG - For you - content-based:", projectsWithScores);
 
     return {
       //projects: paginatedProjects,
@@ -310,8 +310,8 @@ export class RecommendationService {
     // const skip = (page - 1) * limit;
     // const paginatedProjects = projectsWithPopularity.slice(skip, skip + limit);
     const total = projectsWithPopularity.length;
-    //console.log('🔍 DEBUG - For you - Hyprid:', paginatedProjects);
-    console.log("🔍 DEBUG - For you - Hyprid:", projectsWithPopularity);
+    //console.log('DEBUG - For you - Hyprid:', paginatedProjects);
+    console.log("DEBUG - For you - Hyprid:", projectsWithPopularity);
 
     return {
       // projects: paginatedProjects,
