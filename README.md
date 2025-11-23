@@ -43,11 +43,11 @@ Setup the project by running below steps
 
 STEP 1
 ```bash
-git clone https://github.com/Mahsa-Projects/Idealize-BE-Col # fetch the project from GitHub
+git clone https://github.com/HHN/idealize_server.git # fetch the project from GitHub
 ```
 
 ```bash
-cd Idealize-BE-Col/ # go to the project's root folder
+cd idealize_server/ # go to the project's root folder
 ```
 
 ```bash

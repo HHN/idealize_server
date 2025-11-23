@@ -12,7 +12,6 @@ import {
   RecommendationDocument,
 } from "./recommendation/schemas/recommendation.schema";
 import { AuthService } from "../auth/auth.service";
-import { TagService } from "../tags/tag/services/tag.service";
 
 @Injectable()
 export class RecommendationService {
@@ -33,10 +32,19 @@ export class RecommendationService {
    */
   async getContentBasedRecommendations(
     token: string,
-    id: string
-    // page: number = 1,
-    // limit: number = 10,
-  ): Promise<{ projects: any[]; total: number; algorithm: string }> {
+    id: string,
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<{ 
+    projects: any[]; // any[] because Project[] wont have the field "_id" 
+    total: number; 
+    page: number; 
+    limit: number; 
+    hasMore: boolean; 
+    algorithm: string;
+    emptyStateReason?: string;
+    emptyStateMessage?: string;
+  }> {
     // Decode JWT to get user ID
     const jwtUser = await this.authService.decodeJWT(token);
     console.log("DEBUG - Decoded JWT User:", jwtUser, "token: ", token);
@@ -48,15 +56,15 @@ export class RecommendationService {
       .findById(id) // changed from jwtUser.userId to id
       .populate("interestedTags")
       .populate("interestedCourses")
+      .populate("studyPrograms")
       .lean();
 
     if (!user) {
       throw new Error("User not found");
     }
 
-    //const tags = await this.tagService
-
     // Debug: Log user interests
+    // if Debugs showing empty update the reference ids in the userprofile with existing ids
     console.log("DEBUG - User ID:", userId);
     console.log("DEBUG - User Name:", user.username);
     console.log("DEBUG - User interestedTags:", user.interestedTags);
@@ -80,40 +88,66 @@ export class RecommendationService {
       ? user.interestedCourses.map((course: any) => course._id.toString())
       : [];
 
-    // prototype (not functional) -> include users with their interests into the recommendations
-    // const userProgramIds = user.studyPrograms ? user.studyPrograms.map((program: any) => program._id.toString()) : [];
-
     console.log("DEBUG - User Tag IDs:", userTagIds);
     console.log("DEBUG - User Course IDs:", userCourseIds);
-    // console.log('DEBUG - User Study Program IDs:', userProgramIds);
 
-    // Get all non-draft projects (excluding user's own projects and already liked)
+    // Check if user has any interests defined
+    if (userTagIds.length === 0 && userCourseIds.length === 0) {
+      return {
+        projects: [],
+        total: 0,
+        page,
+        limit,
+        hasMore: false,
+        algorithm: "content-based",
+        emptyStateReason: "no_interests",
+        emptyStateMessage: "Please add interests to your profile to get personalized recommendations. Go to Settings > Edit Profile to add tags and courses you're interested in.",
+      };
+    }
+
+    // Build query to only include projects that match at least one user interest
+    const matchQuery: any = {
+      isDraft: false,
+      owner: { $ne: new Types.ObjectId(userId) },
+      _id: { $nin: likedProjectIds.map((id) => new Types.ObjectId(id)) },
+    };
+
+    // Only include projects that have at least one matching tag, course, or study program
+    const userInterestIds = [
+      ...userTagIds.map(id => new Types.ObjectId(id)),
+      ...userCourseIds.map(id => new Types.ObjectId(id)),
+    ];
+
+    if (userInterestIds.length > 0) {
+      matchQuery.$or = [
+        { tags: { $in: userInterestIds } },
+        { courses: { $in: userInterestIds } },
+      ];
+    }
+
+    // Get only projects that match user's interests
     const allProjects = await this.projectModel
-      .find({
-        isDraft: false,
-        owner: { $ne: new Types.ObjectId(userId) },
-        _id: { $nin: likedProjectIds.map((id) => new Types.ObjectId(id)) },
-      })
+      .find(matchQuery)
       .populate("tags")
       .populate("courses")
       .populate("owner", "_id firstName lastName email userType")
       .populate("thumbnail")
       .lean();
 
-    // prototype (not functional) -> include users with their interests into the recommendations
-    // const allUsers = await this.userModel.find()
-    //   .populate('firstName')
-    //   .populate('lastName')
-    //   .populate('interestedTags')
-    //   .populate('interestedCourses')
-    //   .populate('studyPrograms')
-    //   .lean();
-
-    // console.log('DEBUG - Total projects found:', allProjects.length);
-    // console.log('DEBUG - First 3 projects tags:', allProjects.slice(0, 3).map(p => ({
-    //   title: (p as any).title,
-    //   tags: (p as any).tags.map((t: any) => t.name || t._id)
-    // })));
+    // Check if no matching projects found
+    if (allProjects.length === 0) {
+      console.log("No projects match your interests yet. Try adding more tags or courses to your profile, or check back later for new projects.")
+      return {
+        projects: [],
+        total: 0,
+        page,
+        limit,
+        hasMore: false,
+        algorithm: "content-based",
+        emptyStateReason: "no_matching_projects",
+        emptyStateMessage: "No projects match your interests yet. Try adding more tags or courses to your profile, or check back later for new projects.",
+      };
+    }
 
     // Calculate scores for each project
     const projectsWithScores = allProjects.map((project) => {
@@ -157,37 +191,33 @@ export class RecommendationService {
       };
     });
 
-    // prototype (not functional) -> include users with their interests into the recommendations
-    // const usersWithScores = allUsers.map(user => {
-    //   const userTagIds = user.interestedTags ? user.interestedTags.map((tag: any) => tag._id.toString()) : [];
-    //   const userCourseIds = user.interestedCourses ? user.interestedCourses.map((course: any) => course._id.toString()) : [];
-    //   const userProgramIds = user.studyPrograms ? user.studyPrograms.map((program: any) => program._id.toString()) : [];
-
-    //   return {
-    //     ...user,
-    //     tagIds: userTagIds,
-    //     courseIds: userCourseIds,
-    //     programIds: userProgramIds,
-    //   };
-    // });
-
     // Sort by score (highest first)
     projectsWithScores.sort(
       (a, b) => b.recommendationScore - a.recommendationScore
     );
 
-    // Pagination - not needed right now
-    // const skip = (page - 1) * limit;
-    // const paginatedProjects = projectsWithScores.slice(skip, skip + limit);
     const total = projectsWithScores.length;
 
-    // console.log('DEBUG - For you - content-based:', paginatedProjects);
-    console.log("DEBUG - For you - content-based:", projectsWithScores);
+    // Pagination
+    const skip = (page - 1) * limit;    
+    const paginatedProjects = projectsWithScores.slice(skip, skip + limit);
+
+    // Debug pagination
+    console.log("=== PAGINATION DEBUG ===");
+    console.log("Page:", page, "Limit:", limit, "Skip:", skip);
+    console.log("Total projects (filtered):", total);
+    console.log("Returning projects:", paginatedProjects.length);
+    console.log("Expected last page:", Math.ceil(total / limit));
+
+    const hasMore = skip + paginatedProjects.length < total;
+    console.log("Has more pages:", hasMore);
 
     return {
-      //projects: paginatedProjects,
-      projects: projectsWithScores,
+      projects: paginatedProjects,
       total,
+      page,
+      limit,
+      hasMore,
       algorithm: "content-based",
     };
   }
