@@ -13,6 +13,10 @@ import {
 } from "./recommendation/schemas/recommendation.schema";
 import { AuthService } from "../auth/auth.service";
 
+export const tagWeight = 0.5;
+export const courseWeight = 0.3;
+export const studyProgramWeight = 0.2;
+
 @Injectable()
 export class RecommendationService {
   constructor(
@@ -34,13 +38,13 @@ export class RecommendationService {
     token: string,
     id: string,
     page: number = 1,
-    limit: number = 10,
-  ): Promise<{ 
-    projects: any[]; // any[] because Project[] wont have the field "_id" 
-    total: number; 
-    page: number; 
-    limit: number; 
-    hasMore: boolean; 
+    limit: number = 10
+  ): Promise<{
+    projects: any[]; // any[] because Project[] wont have the field "_id"
+    total: number;
+    page: number;
+    limit: number;
+    hasMore: boolean;
     algorithm: string;
     emptyStateReason?: string;
     emptyStateMessage?: string;
@@ -101,7 +105,8 @@ export class RecommendationService {
         hasMore: false,
         algorithm: "content-based",
         emptyStateReason: "no_interests",
-        emptyStateMessage: "Please add interests to your profile to get personalized recommendations. Go to Settings > Edit Profile to add tags and courses you're interested in.",
+        emptyStateMessage:
+          "Please add interests to your profile to get personalized recommendations. Go to Settings > Edit Profile to add tags and courses you're interested in.",
       };
     }
 
@@ -114,8 +119,8 @@ export class RecommendationService {
 
     // Only include projects that have at least one matching tag, course, or study program
     const userInterestIds = [
-      ...userTagIds.map(id => new Types.ObjectId(id)),
-      ...userCourseIds.map(id => new Types.ObjectId(id)),
+      ...userTagIds.map((id) => new Types.ObjectId(id)),
+      ...userCourseIds.map((id) => new Types.ObjectId(id)),
     ];
 
     if (userInterestIds.length > 0) {
@@ -136,7 +141,9 @@ export class RecommendationService {
 
     // Check if no matching projects found
     if (allProjects.length === 0) {
-      console.log("No projects match your interests yet. Try adding more tags or courses to your profile, or check back later for new projects.")
+      console.log(
+        "No projects match your interests yet. Try adding more tags or courses to your profile, or check back later for new projects."
+      );
       return {
         projects: [],
         total: 0,
@@ -145,7 +152,8 @@ export class RecommendationService {
         hasMore: false,
         algorithm: "content-based",
         emptyStateReason: "no_matching_projects",
-        emptyStateMessage: "No projects match your interests yet. Try adding more tags or courses to your profile, or check back later for new projects.",
+        emptyStateMessage:
+          "No projects match your interests yet. Try adding more tags or courses to your profile, or check back later for new projects.",
       };
     }
 
@@ -181,9 +189,9 @@ export class RecommendationService {
 
       // Combined score with weights
       const finalScore =
-        tagScore * 0.5 + // 50% weight on tag matching
-        courseScore * 0.3 + // 30% weight on course matching
-        recencyScore * 0.2; // 20% weight on recency
+        tagScore * tagWeight + // 50% weight on tag matching
+        courseScore * courseWeight + // 30% weight on course matching
+        recencyScore * studyProgramWeight; // 20% weight on recency
 
       return {
         ...project,
@@ -199,7 +207,7 @@ export class RecommendationService {
     const total = projectsWithScores.length;
 
     // Pagination
-    const skip = (page - 1) * limit;    
+    const skip = (page - 1) * limit;
     const paginatedProjects = projectsWithScores.slice(skip, skip + limit);
 
     // Debug pagination
@@ -348,6 +356,242 @@ export class RecommendationService {
       projects: projectsWithPopularity,
       total,
       algorithm: "hybrid",
+    };
+  }
+
+  /**
+   * K-Nearest Neighbors (KNN): Recommends projects based on similar users' preferences
+   */
+  async getKnnRecommendations(
+    token: string,
+    id: string,
+    k: number = 5
+  ): Promise<{ projects: any[]; total: number; algorithm: string }> {
+    // Decode JWT to get user ID
+    const jwtUser = await this.authService.decodeJWT(token);
+    const userId = jwtUser.userId;
+
+    // Get target user with interests
+    const targetUser = await this.userModel
+      .findById(id)
+      .populate("interestedTags")
+      .populate("interestedCourses")
+      .populate("studyPrograms")
+      .lean();
+
+    if (!targetUser) {
+      throw new Error("User not found");
+    }
+
+    // Extract target user's features
+    const targetTagIds = targetUser.interestedTags
+      ? targetUser.interestedTags.map((tag: any) => tag._id.toString())
+      : [];
+    const targetCourseIds = targetUser.interestedCourses
+      ? targetUser.interestedCourses.map((course: any) => course._id.toString())
+      : [];
+    const targetProgramIds = targetUser.studyPrograms
+      ? targetUser.studyPrograms.map((program: any) => program._id.toString())
+      : [];
+
+    // Get target user's liked projects
+    const targetLikes = await this.likeProjectModel
+      .find({ userId: new Types.ObjectId(id) })
+      .select("projectId")
+      .lean();
+    const targetLikedProjectIds = new Set(
+      targetLikes.map((like) => like.projectId.toString())
+    );
+
+    console.log("🔍 DEBUG KNN - Target User:", id);
+    console.log("🔍 DEBUG KNN - Target Tags:", targetTagIds);
+    console.log("🔍 DEBUG KNN - Target Courses:", targetCourseIds);
+    console.log("🔍 DEBUG KNN - Target Programs:", targetProgramIds);
+    console.log(
+      "🔍 DEBUG KNN - Target Liked Projects:",
+      targetLikedProjectIds.size
+    );
+
+    // Get all other users with their interests
+    const allUsers = await this.userModel
+      .find({ _id: { $ne: new Types.ObjectId(id) } })
+      .populate("interestedTags")
+      .populate("interestedCourses")
+      .populate("studyPrograms")
+      .lean();
+
+    // Calculate similarity scores for each user
+    const userSimilarities = allUsers.map((user) => {
+      const userTagIds = user.interestedTags
+        ? user.interestedTags.map((tag: any) => tag._id.toString())
+        : [];
+      const userCourseIds = user.interestedCourses
+        ? user.interestedCourses.map((course: any) => course._id.toString())
+        : [];
+      const userProgramIds = user.studyPrograms
+        ? user.studyPrograms.map((program: any) => program._id.toString())
+        : [];
+
+      // Cosine similarity for tags
+      const tagIntersection = targetTagIds.filter((tagId) =>
+        userTagIds.includes(tagId)
+      ).length;
+      const tagSimilarity =
+        targetTagIds.length > 0 && userTagIds.length > 0
+          ? tagIntersection / Math.sqrt(targetTagIds.length * userTagIds.length)
+          : 0;
+
+      // Cosine similarity for courses
+      const courseIntersection = targetCourseIds.filter((courseId) =>
+        userCourseIds.includes(courseId)
+      ).length;
+      const courseSimilarity =
+        targetCourseIds.length > 0 && userCourseIds.length > 0
+          ? courseIntersection /
+            Math.sqrt(targetCourseIds.length * userCourseIds.length)
+          : 0;
+
+      // Cosine similarity for study programs
+      const programIntersection = targetProgramIds.filter((programId) =>
+        userProgramIds.includes(programId)
+      ).length;
+      const programSimilarity =
+        targetProgramIds.length > 0 && userProgramIds.length > 0
+          ? programIntersection /
+            Math.sqrt(targetProgramIds.length * userProgramIds.length)
+          : 0;
+
+      // Combined similarity score
+      const similarityScore =
+        tagSimilarity * tagWeight + // 50% weight on tag matching
+        courseSimilarity * courseWeight + // 30% weight on course matching
+        programSimilarity * studyProgramWeight; // 20% weight on study program matching
+
+      return {
+        userId: user._id.toString(),
+        username: user.username,
+        similarityScore,
+        tagIntersection,
+        courseIntersection,
+        programIntersection,
+      };
+    });
+
+    // Sort by similarity and get top K neighbors
+    userSimilarities.sort((a, b) => b.similarityScore - a.similarityScore);
+    const kNearestNeighbors = userSimilarities
+      .slice(0, k)
+      .filter((u) => u.similarityScore > 0);
+
+    console.log("🔍 DEBUG KNN - K Nearest Neighbors:", kNearestNeighbors);
+
+    if (kNearestNeighbors.length === 0) {
+      console.log(
+        "🔍 DEBUG KNN - No similar users found, falling back to popular projects"
+      );
+      // Fallback: return popular projects if no similar users
+      const popularProjects = await this.projectModel
+        .find({ isDraft: false })
+        .populate("tags")
+        .populate("courses")
+        .populate("owner", "_id firstName lastName email userType")
+        .populate("thumbnail")
+        .sort({ createdAt: -1 })
+        .limit(20)
+        .lean();
+
+      return {
+        projects: popularProjects.map((p) => ({
+          ...p,
+          recommendationScore: 0,
+        })),
+        total: popularProjects.length,
+        algorithm: "knn-fallback",
+      };
+    }
+
+    // Get liked projects from similar users
+    const neighborUserIds = kNearestNeighbors.map(
+      (n) => new Types.ObjectId(n.userId)
+    );
+    const neighborLikes = await this.likeProjectModel
+      .find({ userId: { $in: neighborUserIds } })
+      .lean();
+
+    // Count weighted likes per project
+    const projectScores = new Map<string, { score: number; count: number }>();
+
+    neighborLikes.forEach((like) => {
+      const projectId = like.projectId.toString();
+
+      // Skip if target user already liked this project
+      if (targetLikedProjectIds.has(projectId)) {
+        return;
+      }
+
+      // Find the similarity score of the user who liked this project
+      const neighbor = kNearestNeighbors.find(
+        (n) => n.userId === like.userId.toString()
+      );
+      if (!neighbor) return;
+
+      const currentData = projectScores.get(projectId) || {
+        score: 0,
+        count: 0,
+      };
+      projectScores.set(projectId, {
+        score: currentData.score + neighbor.similarityScore,
+        count: currentData.count + 1,
+      });
+    });
+
+    console.log(
+      "🔍 DEBUG KNN - Project Scores:",
+      Array.from(projectScores.entries()).slice(0, 5)
+    );
+
+    // Get project details and calculate final scores
+    const projectIds = Array.from(projectScores.keys()).map(
+      (id) => new Types.ObjectId(id)
+    );
+    const projects = await this.projectModel
+      .find({ _id: { $in: projectIds }, isDraft: false })
+      .populate("tags")
+      .populate("courses")
+      .populate("owner", "_id firstName lastName email userType")
+      .populate("thumbnail")
+      .lean();
+
+    // Attach scores and sort
+    const projectsWithScores = projects.map((project) => {
+      const projectId = project._id.toString();
+      const scoreData = projectScores.get(projectId);
+
+      // Average similarity score weighted by number of similar users who liked it
+      const recommendationScore = scoreData
+        ? (scoreData.score / k) * Math.log(1 + scoreData.count)
+        : 0;
+
+      return {
+        ...project,
+        recommendationScore,
+        likedByNeighbors: scoreData?.count || 0,
+      };
+    });
+
+    projectsWithScores.sort(
+      (a, b) => b.recommendationScore - a.recommendationScore
+    );
+
+    console.log(
+      "🔍 DEBUG KNN - Final Recommendations:",
+      projectsWithScores.length
+    );
+
+    return {
+      projects: projectsWithScores,
+      total: projectsWithScores.length,
+      algorithm: "knn",
     };
   }
 }
