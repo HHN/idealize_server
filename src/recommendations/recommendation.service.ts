@@ -28,6 +28,61 @@ export class RecommendationService {
   ) {}
 
   /**
+   * Baseline Filtering: Not personalized approach. Recommending projects ranked by popularity (likes)
+   */
+  async getBasicFilteredRecommendations(
+    token: string,
+    id: string
+    // page: number = 1,
+    // limit: number = 10,
+  ): Promise<{ projects: any[]; total: number; algorithm: string }> {
+    // Decode JWT to get user ID
+    const jwtUser = await this.authService.decodeJWT(token);
+    const userId = jwtUser.userId;
+
+    // Query all non-draft projects excluding user's own projects
+    const query: any = {
+      isDraft: false,
+      owner: { $ne: new Types.ObjectId(userId) },
+    };
+
+    // Get all projects with populated fields
+    const allProjects = await this.projectModel
+      .find(query)
+      .populate("tags")
+      .populate("courses")
+      .populate("owner", "_id firstName lastName email userType")
+      .populate("thumbnail")
+      .populate("teamMembers", "_id firstName lastName email userType")
+      .lean();
+
+    // Get likes count for each project and sort by popularity
+    const projectsWithLikes = await Promise.all(
+      allProjects.map(async (project) => {
+        const likesCount = await this.likeProjectModel.countDocuments({
+          projectId: project._id,
+        });
+
+        return {
+          ...project,
+          likesCount,
+        };
+      })
+    );
+
+    // Sort by likes count (highest first)
+    projectsWithLikes.sort((a, b) => b.likesCount - a.likesCount);
+
+    const total = projectsWithLikes.length;
+
+    return {
+      projects: projectsWithLikes,
+      total,
+      algorithm: "popularity-based (non-personalized baseline)",
+    };
+  }
+
+  /**
    * Content-Based Filtering: Recommendations based on user's interested tags and courses
    */
   async getContentBasedRecommendations(
@@ -219,79 +274,6 @@ export class RecommendationService {
       limit,
       hasMore,
       algorithm: "content-based",
-    };
-  }
-
-  /**
-   * Basic Filtering: Recommendations based on user's interested tags and courses (simpler approach)
-   */
-  async getBasicFilteredRecommendations(
-    token: string,
-    id: string
-    // page: number = 1,
-    // limit: number = 10,
-  ): Promise<{ projects: any[]; total: number; algorithm: string }> {
-    // Decode JWT to get user ID
-    const jwtUser = await this.authService.decodeJWT(token);
-    const userId = jwtUser.userId;
-
-    // Get user profile with interests
-    const user = await this.userModel
-      // .findById(jwtUser.userId)
-      .findById(id) // changed from jwtUser.userId to id
-      .populate("interestedTags")
-      .populate("interestedCourses")
-      .lean();
-
-    if (!user) {
-      throw new Error("User not found");
-    }
-
-    // Get user's liked projects to exclude them
-    const likedProjects = await this.likeProjectModel
-      // .find({ userId: new Types.ObjectId(userId) })
-      .find({ userId: id }) // changed from jwtUser.userId to id
-      .select("projectId")
-      .lean();
-    const likedProjectIds = likedProjects.map((like) =>
-      like.projectId.toString()
-    );
-
-    // Extract user's interested tag and course IDs
-    const userTagIds = user.interestedTags.map((tag: any) => tag._id);
-    const userCourseIds = user.interestedCourses.map(
-      (course: any) => course._id
-    );
-
-    // const skip = (page - 1) * limit;
-
-    // Query projects that match user's interests
-    const query: any = {
-      isDraft: false,
-      // owner: { $ne: new Types.ObjectId(userId) },
-      // _id: { $nin: likedProjectIds.map(id => new Types.ObjectId(id)) },
-      $or: [{ tags: { $in: userTagIds } }, { courses: { $in: userCourseIds } }],
-    };
-
-    // Get projects with populated fields
-    const projects = await this.projectModel
-      .find(query)
-      .populate("tags")
-      .populate("courses")
-      .populate("owner", "_id firstName lastName email userType")
-      .populate("thumbnail")
-      .populate("teamMembers", "_id firstName lastName email userType")
-      .sort({ createdAt: -1 }) // Most recent first
-      // .skip(skip)
-      // .limit(limit)
-      .lean();
-
-    const total = await this.projectModel.countDocuments(query);
-
-    return {
-      projects,
-      total,
-      algorithm: "basic-filtering",
     };
   }
 
