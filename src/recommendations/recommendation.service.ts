@@ -13,6 +13,10 @@ import {
 } from "./recommendation/schemas/recommendation.schema";
 import { AuthService } from "../auth/auth.service";
 
+export const tagWeight = 0.5;
+export const courseWeight = 0.3;
+export const studyProgramWeight = 0.2;
+
 @Injectable()
 export class RecommendationService {
   constructor(
@@ -28,9 +32,9 @@ export class RecommendationService {
   ) {}
 
   /**
-   * Baseline Filtering: Not personalized approach. Recommending projects ranked by popularity (likes)
+   * Baseline Filtering: Non-personalized approach. Recommending projects ranked by popularity (likes)
    */
-  async getBasicFilteredRecommendations(
+  async getBasicRecommendations(
     token: string,
     id: string
     // page: number = 1,
@@ -89,13 +93,13 @@ export class RecommendationService {
     token: string,
     id: string,
     page: number = 1,
-    limit: number = 10,
-  ): Promise<{ 
-    projects: any[]; // any[] because Project[] wont have the field "_id" 
-    total: number; 
-    page: number; 
-    limit: number; 
-    hasMore: boolean; 
+    limit: number = 10
+  ): Promise<{
+    projects: any[]; // any[] because Project[] wont have the field "_id"
+    total: number;
+    page: number;
+    limit: number;
+    hasMore: boolean;
     algorithm: string;
     emptyStateReason?: string;
     emptyStateMessage?: string;
@@ -156,7 +160,8 @@ export class RecommendationService {
         hasMore: false,
         algorithm: "content-based",
         emptyStateReason: "no_interests",
-        emptyStateMessage: "Please add interests to your profile to get personalized recommendations. Go to Settings > Edit Profile to add tags and courses you're interested in.",
+        emptyStateMessage:
+          "Please add interests to your profile to get personalized recommendations. Go to Settings > Edit Profile to add tags and courses you're interested in.",
       };
     }
 
@@ -169,8 +174,8 @@ export class RecommendationService {
 
     // Only include projects that have at least one matching tag, course, or study program
     const userInterestIds = [
-      ...userTagIds.map(id => new Types.ObjectId(id)),
-      ...userCourseIds.map(id => new Types.ObjectId(id)),
+      ...userTagIds.map((id) => new Types.ObjectId(id)),
+      ...userCourseIds.map((id) => new Types.ObjectId(id)),
     ];
 
     if (userInterestIds.length > 0) {
@@ -191,7 +196,9 @@ export class RecommendationService {
 
     // Check if no matching projects found
     if (allProjects.length === 0) {
-      console.log("No projects match your interests yet. Try adding more tags or courses to your profile, or check back later for new projects.")
+      console.log(
+        "No projects match your interests yet. Try adding more tags or courses to your profile, or check back later for new projects."
+      );
       return {
         projects: [],
         total: 0,
@@ -200,7 +207,8 @@ export class RecommendationService {
         hasMore: false,
         algorithm: "content-based",
         emptyStateReason: "no_matching_projects",
-        emptyStateMessage: "No projects match your interests yet. Try adding more tags or courses to your profile, or check back later for new projects.",
+        emptyStateMessage:
+          "No projects match your interests yet. Try adding more tags or courses to your profile, or check back later for new projects.",
       };
     }
 
@@ -236,9 +244,9 @@ export class RecommendationService {
 
       // Combined score with weights
       const finalScore =
-        tagScore * 0.5 + // 50% weight on tag matching
-        courseScore * 0.3 + // 30% weight on course matching
-        recencyScore * 0.2; // 20% weight on recency
+        tagScore * tagWeight + // 50% weight on tag matching
+        courseScore * courseWeight + // 30% weight on course matching
+        recencyScore * studyProgramWeight; // 20% weight on recency
 
       return {
         ...project,
@@ -254,7 +262,7 @@ export class RecommendationService {
     const total = projectsWithScores.length;
 
     // Pagination
-    const skip = (page - 1) * limit;    
+    const skip = (page - 1) * limit;
     const paginatedProjects = projectsWithScores.slice(skip, skip + limit);
 
     // Debug pagination
