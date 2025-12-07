@@ -10,6 +10,9 @@ export class LikeProject {
 
     @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'Project', required: true })
     projectId: Types.ObjectId;
+
+    @Prop({ type: Boolean, default: false, select: false })
+    isMockData: boolean;
 }
 
 export const LikeProjectSchema = SchemaFactory.createForClass(LikeProject);

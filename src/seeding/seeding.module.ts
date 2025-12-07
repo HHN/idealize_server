@@ -9,6 +9,7 @@ import { UserSchema } from 'src/users/user/schemas/user.schema';
 import { Project, ProjectSchema } from 'src/projects/project/schemas/project.schema';
 import { ReportSchema } from 'src/reports/report/schemas/report.schema';
 import { CommentSchema } from 'src/comments/comment/schemas/comment.schema';
+import { LikeProjectSchema } from 'src/likes/like/schemas/like-project.schema';
 
 @Module({
     imports: [
@@ -17,7 +18,8 @@ import { CommentSchema } from 'src/comments/comment/schemas/comment.schema';
             { name: 'User', schema: UserSchema },
             { name: 'Project', schema: ProjectSchema },
             { name: 'Report', schema: ReportSchema },
-            { name: 'Comment', schema: CommentSchema }
+            { name: 'Comment', schema: CommentSchema },
+            { name: 'LikeProject', schema: LikeProjectSchema }
         ]),
         AuthModule,
         NotificationModule,

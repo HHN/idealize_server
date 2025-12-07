@@ -66,6 +66,17 @@ export class AdminSeedingController {
         return this.seedingService.reportsMockup();
     }
 
+    @Post('likes')
+    @ApiOperation({
+        summary: 'This endpoint creates likes for seeding',
+        description: 'This endpoint creates likes for seeding. Each user will like a minimum of 3 different projects.',
+    })
+    @ApiHeader({ name: 'Authorization', required: true })
+    @UsePipes(new ValidationPipe({ transform: true }))
+    async likesMockup(): Promise<any> {
+        return this.seedingService.likesMockup();
+    }
+
     @Delete('all')
     @ApiOperation({
         summary: 'This endpoint deletes all seeds',

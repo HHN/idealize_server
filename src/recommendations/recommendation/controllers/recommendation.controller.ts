@@ -11,24 +11,6 @@ import { RecommendationQueryDto } from "../dtos/recommendation-query.dto";
 export class RecommendationController {
   constructor(private readonly recommendationService: RecommendationService) {}
 
-  @Get("for-you")
-  @ApiOperation({
-    summary: 'Get personalized "For You" recommendations',
-    description:
-      "Returns personalized project recommendations based on content-based filtering (user interests)",
-  })
-  async getForYouRecommendations(
-    @Headers("Authorization") token: string,
-    @Query() query: RecommendationQueryDto
-  ) {
-    return this.recommendationService.getContentBasedRecommendations(
-      token,
-      query.id
-      // query.page,
-      // query.limit,
-    );
-  }
-
   @Get("basic")
   @ApiOperation({
     summary: "Get basic filtered recommendations",
@@ -42,6 +24,38 @@ export class RecommendationController {
     return this.recommendationService.getBasicRecommendations(
       token,
       query.id
+      // query.page,
+      // query.limit,
+    );
+  }
+
+
+  @Get("content-based")
+  @ApiOperation({
+    summary: 'Get personalized content-based recommendations',
+    description:
+      "Returns personalized project recommendations based on content-based filtering (user interests)",
+  })
+  async getContentBasedRecommendations(
+    @Headers("Authorization") token: string,
+    @Query() query: RecommendationQueryDto
+  ) {
+    return this.recommendationService.getContentBasedRecommendations(
+      token,
+      query.id
+      // query.page,
+      // query.limit,
+    );
+  }
+
+  @Get('collaborative')
+  async getCollaborativeRecommendations(
+    @Headers('Authorization') token: string,
+    @Query() query: RecommendationQueryDto,
+  ) {
+    return this.recommendationService.getCollaborativeRecommendations(
+      token,
+      query.id,
       // query.page,
       // query.limit,
     );

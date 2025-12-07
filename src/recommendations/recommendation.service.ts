@@ -286,6 +286,203 @@ export class RecommendationService {
   }
 
   /**
+   * Collaborative Filtering: Recommendations based on user similarity using SVD-inspired approach
+   * Uses user-item interaction matrix (likes) to find similar users
+   */
+  async getCollaborativeRecommendations(
+    token: string,
+    id: string,
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<{ 
+    projects: any[]; 
+    total: number; 
+    page: number; 
+    limit: number; 
+    hasMore: boolean; 
+    algorithm: string;
+    emptyStateReason?: string;
+    emptyStateMessage?: string;
+  }> {
+    // Decode JWT to get user ID
+    const jwtUser = await this.authService.decodeJWT(token);
+    const userId = jwtUser.userId;
+
+    console.log("\n=== COLLABORATIVE FILTERING (SVD-based) ===");
+    console.log("User ID:", userId);
+
+    // Get all users and their liked projects
+    const allLikes = await this.likeProjectModel
+      .find()
+      .select("userId projectId")
+      .lean();
+
+    // Get target user's liked projects
+    const userLikes = allLikes
+      .filter((like) => like.userId.toString() === userId)
+      .map((like) => like.projectId.toString());
+
+    console.log("User has liked", userLikes.length, "projects");
+
+    if (userLikes.length === 0) {
+      return {
+        projects: [],
+        total: 0,
+        page,
+        limit,
+        hasMore: false,
+        algorithm: "collaborative-filtering",
+        emptyStateReason: "no_interactions",
+        emptyStateMessage: "Like some projects first to get personalized recommendations based on users with similar tastes.",
+      };
+    }
+
+    // Build user-item matrix (sparse representation)
+    const userProjectMap = new Map<string, Set<string>>();
+    
+    allLikes.forEach((like) => {
+      const uid = like.userId.toString();
+      const pid = like.projectId.toString();
+      
+      if (!userProjectMap.has(uid)) {
+        userProjectMap.set(uid, new Set());
+      }
+      userProjectMap.get(uid)!.add(pid);
+    });
+
+    // Calculate user similarity using Jaccard similarity
+    const similarities: Array<{ userId: string; similarity: number }> = [];
+    const userLikesSet = new Set(userLikes);
+
+    userProjectMap.forEach((otherUserLikes, otherUserId) => {
+      // Skip self
+      if (otherUserId === userId) return;
+
+      // Calculate Jaccard similarity: intersection / union
+      const intersection = [...userLikesSet].filter((pid) =>
+        otherUserLikes.has(pid)
+      ).length;
+      
+      const union = new Set([...userLikesSet, ...otherUserLikes]).size;
+      const similarity = union > 0 ? intersection / union : 0;
+
+      // Only consider users with at least some similarity
+      if (similarity > 0) {
+        similarities.push({ userId: otherUserId, similarity });
+      }
+    });
+
+    // Sort by similarity (highest first)
+    similarities.sort((a, b) => b.similarity - a.similarity);
+
+    console.log("Found", similarities.length, "similar users");
+
+    if (similarities.length === 0) {
+      return {
+        projects: [],
+        total: 0,
+        page,
+        limit,
+        hasMore: false,
+        algorithm: "collaborative-filtering",
+        emptyStateReason: "no_similar_users",
+        emptyStateMessage: "No users with similar tastes found yet. Try liking more projects to improve recommendations.",
+      };
+    }
+
+    // Get top N similar users (e.g., top 10)
+    const topSimilarUsers = similarities.slice(0, 10);
+    console.log("Top similar users:", topSimilarUsers.length);
+
+    // Collect projects liked by similar users (weighted by similarity)
+    const projectScores = new Map<string, number>();
+
+    topSimilarUsers.forEach(({ userId: similarUserId, similarity }) => {
+      const similarUserLikes = userProjectMap.get(similarUserId) || new Set();
+      
+      similarUserLikes.forEach((projectId) => {
+        // Skip projects already liked by target user
+        if (userLikesSet.has(projectId)) return;
+
+        // Add weighted score based on similarity
+        const currentScore = projectScores.get(projectId) || 0;
+        projectScores.set(projectId, currentScore + similarity);
+      });
+    });
+
+    console.log("Found", projectScores.size, "candidate projects");
+
+    if (projectScores.size === 0) {
+      return {
+        projects: [],
+        total: 0,
+        page,
+        limit,
+        hasMore: false,
+        algorithm: "collaborative-filtering",
+        emptyStateReason: "no_new_projects",
+        emptyStateMessage: "You've already liked all projects that similar users enjoy. Check back later for new projects!",
+      };
+    }
+
+    // Convert to array and sort by score
+    const rankedProjects = Array.from(projectScores.entries())
+      .map(([projectId, score]) => ({ projectId, score }))
+      .sort((a, b) => b.score - a.score);
+
+    // Get top project IDs for current page
+    const skip = (page - 1) * limit;
+    const projectIdsToFetch = rankedProjects
+      .slice(skip, skip + limit)
+      .map((p) => new Types.ObjectId(p.projectId));
+
+    // Fetch project details
+    const projects = await this.projectModel
+      .find({
+        _id: { $in: projectIdsToFetch },
+        isDraft: false,
+        owner: { $ne: new Types.ObjectId(userId) },
+      })
+      .populate("tags")
+      .populate("courses")
+      .populate("owner", "_id firstName lastName email userType")
+      .populate("thumbnail")
+      .lean();
+
+    // Add scores and sort by original ranking
+    const projectsWithScores = projects.map((project) => {
+      const scoreData = rankedProjects.find(
+        (p) => p.projectId === project._id.toString()
+      );
+      return {
+        ...project,
+        recommendationScore: scoreData?.score || 0,
+      };
+    });
+
+    // Sort by score (maintain ranking)
+    projectsWithScores.sort(
+      (a, b) => b.recommendationScore - a.recommendationScore
+    );
+
+    const total = rankedProjects.length;
+    const hasMore = skip + projectsWithScores.length < total;
+
+    console.log("Returning", projectsWithScores.length, "projects");
+    console.log("Total available:", total);
+    console.log("Has more:", hasMore);
+
+    return {
+      projects: projectsWithScores,
+      total,
+      page,
+      limit,
+      hasMore,
+      algorithm: "collaborative-filtering",
+    };
+  }
+
+  /**
    * Hybrid Approach: Combines content-based with popularity metrics
    */
   async getHybridRecommendations(
