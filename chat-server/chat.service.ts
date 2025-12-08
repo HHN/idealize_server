@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
+// Currently not in use 
 @Injectable()
 export class ChatService {
 
