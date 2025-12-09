@@ -1,34 +1,34 @@
 version: '3.8'
 
 services:
-  # Backend Service
-  backend-dev:
-    container_name: backend-dev
+  backend-ai:
+    container_name: backend-ai
     build:
       context: .
       dockerfile: Dockerfile
+    env_file:
+      - ai-testing.env
     volumes:
       - ./uploads:/app/uploads
     ports:
-      - "6000:6000"
+      - "7000:7000"
     depends_on:
-      - db-mongo-dev
+      - db-mongo-ai
     networks:
-      - server-network-dev
+      - server-network-ai
 
-  # MongoDB Service
-  db-mongo-dev:
-    container_name: db-mongo-dev
+  db-mongo-ai:
+    container_name: db-mongo-ai
     image: mongo
     volumes:
-      - mongo-data-dev:/data/db
+      - mongo-data-ai:/data/db
     restart: unless-stopped
     networks:
-      - server-network-dev
+      - server-network-ai
       
 volumes:
-  mongo-data-dev:
+  mongo-data-ai:
 
 networks:
-  server-network-dev:
+  server-network-ai:
     driver: bridge
