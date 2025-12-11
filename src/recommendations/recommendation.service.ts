@@ -66,6 +66,7 @@ export class RecommendationService {
     const projectsWithLikes = await Promise.all(
       allProjects.map(async (project) => {
         const likesCount = await this.projectLikeService.likesCount(project._id.toString());
+        console.log("Project: \n" + project + "\n With amount of likes: " + likesCount)
 
         return {
           ...project,
