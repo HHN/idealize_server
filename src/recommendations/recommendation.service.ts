@@ -466,7 +466,8 @@ export class RecommendationService {
     );
 
     const total = rankedProjects.length;
-    const hasMore = skip + projectsWithScores.length < total;
+    // const hasMore = skip + projectsWithScores.length < total;
+    const hasMore = false;
 
     console.log("Returning", projectsWithScores.length, "projects");
     console.log("Total available:", total);
