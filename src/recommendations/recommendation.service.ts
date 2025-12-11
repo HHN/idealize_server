@@ -13,6 +13,7 @@ import {
 } from "./recommendation/schemas/recommendation.schema";
 import { AuthService } from "../auth/auth.service";
 import { ProjectLikeService } from "../likes/like/services/like-project.service";
+import { CommentsService } from "../comments/comment/services/comment.service";
 
 export const tagWeight = 0.5;
 export const courseWeight = 0.3;
@@ -30,7 +31,8 @@ export class RecommendationService {
     @InjectModel("Recommendation")
     private readonly recommendationModel: Model<RecommendationDocument>,
     private readonly authService: AuthService,
-    private readonly projectLikeService: ProjectLikeService
+    private readonly projectLikeService: ProjectLikeService,
+    private readonly commentsService: CommentsService
   ) {}
 
   /**
@@ -52,6 +54,9 @@ export class RecommendationService {
       owner: { $ne: new Types.ObjectId(userId) },
     };
     
+    // Get user's liked projects
+    const likedProjectsData = await this.projectLikeService.findAll("", userId);
+    
     // Get all projects with populated fields
     const allProjects = await this.projectModel
       .find(query)
@@ -66,10 +71,14 @@ export class RecommendationService {
     const projectsWithLikes = await Promise.all(
       allProjects.map(async (project) => {
         const likes = await this.projectLikeService.likesCount(project._id.toString());
+        const isLiked = likedProjectsData.likes.findIndex(item => item.projectId.toString() === project._id.toString()) !== -1;
+        const comments = await this.commentsService.findAllOfCommentsCount(project._id.toString());
         console.log("Project: \n" + project.title + "\n With amount of likes: " + likes)
 
         return {
           ...project,
+          isLiked,
+          comments,
           likes,
         };
       })
@@ -132,6 +141,7 @@ export class RecommendationService {
     console.log("DEBUG - User studyprograms:", user.studyPrograms);
 
     // Get user's liked projects to exclude them
+    const likedProjectsData = await this.projectLikeService.findAll("", userId);
     const likedProjects = await this.likeProjectModel
       .find({ userId: new Types.ObjectId(userId) })
       .select("projectId")
@@ -266,12 +276,16 @@ export class RecommendationService {
     const skip = (page - 1) * limit;
     const paginatedProjects = projectsWithScores.slice(skip, skip + limit);
 
-    // Add likes count to each project
+    // Add likes count and isLiked to each project
     const projectsWithLikes = await Promise.all(
       paginatedProjects.map(async (project) => {
         const likes = await this.projectLikeService.likesCount(project._id.toString());
+        const isLiked = likedProjectsData.likes.findIndex(item => item.projectId.toString() === project._id.toString()) !== -1;
+        const comments = await this.commentsService.findAllOfCommentsCount(project._id.toString());
         return {
           ...project,
+          isLiked,
+          comments,
           likes,
         };
       })
@@ -322,6 +336,9 @@ export class RecommendationService {
     console.log("Collaborative filtering ON SERVER")
     //console.log("\n=== COLLABORATIVE FILTERING (SVD-based) ===");
     //console.log("User ID:", userId);
+
+    // Get user's liked projects data
+    const likedProjectsData = await this.projectLikeService.findAll("", userId);
 
     // Get all users and their liked projects
     const allLikes = await this.likeProjectModel
@@ -477,12 +494,16 @@ export class RecommendationService {
       (a, b) => b.recommendationScore - a.recommendationScore
     );
 
-    // Add likes count to each project
+    // Add likes count and isLiked to each project
     const projectsWithLikes = await Promise.all(
       projectsWithScores.map(async (project) => {
         const likes = await this.projectLikeService.likesCount(project._id.toString());
+        const isLiked = likedProjectsData.likes.findIndex(item => item.projectId.toString() === project._id.toString()) !== -1;
+        const comments = await this.commentsService.findAllOfCommentsCount(project._id.toString());
         return {
           ...project,
+          isLiked,
+          comments,
           likes,
         };
       })

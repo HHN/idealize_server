@@ -8,6 +8,7 @@ import { LikeProjectSchema } from '../likes/like/schemas/like-project.schema';
 import { RecommendationSchema } from './recommendation/schemas/recommendation.schema';
 import { AuthModule } from '../auth/auth.module';
 import { LikeModule } from '../likes/like.module';
+import { CommentsModule } from '../comments/comment.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { LikeModule } from '../likes/like.module';
     ]),
     AuthModule,
     LikeModule,
+    CommentsModule,
   ],
   controllers: [RecommendationController],
   providers: [RecommendationService],
