@@ -65,18 +65,18 @@ export class RecommendationService {
     // Get likes count for each project and sort by popularity
     const projectsWithLikes = await Promise.all(
       allProjects.map(async (project) => {
-        const likesCount = await this.projectLikeService.likesCount(project._id.toString());
-        console.log("Project: \n" + project.title + "\n With amount of likes: " + likesCount)
+        const likes = await this.projectLikeService.likesCount(project._id.toString());
+        console.log("Project: \n" + project.title + "\n With amount of likes: " + likes)
 
         return {
           ...project,
-          likesCount,
+          likes,
         };
       })
     );
 
     // Sort by likes count (highest first)
-    projectsWithLikes.sort((a, b) => b.likesCount - a.likesCount);
+    projectsWithLikes.sort((a, b) => b.likes - a.likes);
 
     const total = projectsWithLikes.length;
 
@@ -269,10 +269,10 @@ export class RecommendationService {
     // Add likes count to each project
     const projectsWithLikes = await Promise.all(
       paginatedProjects.map(async (project) => {
-        const likesCount = await this.projectLikeService.likesCount(project._id.toString());
+        const likes = await this.projectLikeService.likesCount(project._id.toString());
         return {
           ...project,
-          likesCount,
+          likes,
         };
       })
     );
@@ -480,10 +480,10 @@ export class RecommendationService {
     // Add likes count to each project
     const projectsWithLikes = await Promise.all(
       projectsWithScores.map(async (project) => {
-        const likesCount = await this.projectLikeService.likesCount(project._id.toString());
+        const likes = await this.projectLikeService.likesCount(project._id.toString());
         return {
           ...project,
-          likesCount,
+          likes,
         };
       })
     );
@@ -523,10 +523,10 @@ export class RecommendationService {
     // Add popularity score based on likes
     const projectsWithPopularity = await Promise.all(
       contentBased.projects.map(async (project) => {
-        const likesCount = await this.projectLikeService.likesCount(project._id.toString());
+        const likes = await this.projectLikeService.likesCount(project._id.toString());
 
         // Normalize popularity score (max 1.0)
-        const popularityScore = Math.min(likesCount / 10, 1.0);
+        const popularityScore = Math.min(likes / 10, 1.0);
 
         // Recalculate score with popularity
         const hybridScore =
@@ -535,7 +535,7 @@ export class RecommendationService {
 
         return {
           ...project,
-          likesCount,
+          likes,
           recommendationScore: hybridScore,
         };
       })
