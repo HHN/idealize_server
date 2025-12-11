@@ -11,7 +11,8 @@ export class ChatService {
 
   async sendMessageToBot(message: string): Promise<any> {
     // Example of calling your Python chatbot service
-
+    const chatURL = this.configService.get<string>('chatbot.url');
+    console.log("Chaturl: "+chatURL);
     const response = await fetch(this.configService.get<string>('chatbot.url'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
