@@ -43,13 +43,13 @@ export class RecommendationService {
     // Decode JWT to get user ID
     const jwtUser = await this.authService.decodeJWT(token);
     const userId = jwtUser.userId;
-
+    console.log("Basic filtering ON SERVER")
     // Query all non-draft projects excluding user's own projects
     const query: any = {
       isDraft: false,
       owner: { $ne: new Types.ObjectId(userId) },
     };
-
+    
     // Get all projects with populated fields
     const allProjects = await this.projectModel
       .find(query)
@@ -106,10 +106,10 @@ export class RecommendationService {
   }> {
     // Decode JWT to get user ID
     const jwtUser = await this.authService.decodeJWT(token);
-    console.log("DEBUG - Decoded JWT User:", jwtUser, "token: ", token);
+    // console.log("DEBUG - Decoded JWT User:", jwtUser, "token: ", token);
     const userId = jwtUser.userId;
-    const userName = jwtUser.name;
-
+    // const userName = jwtUser.name;
+    console.log("Content-based filtering ON SERVER")
     // Get user profile with interests
     const user = await this.userModel
       .findById(id) // changed from jwtUser.userId to id
@@ -307,9 +307,9 @@ export class RecommendationService {
     // Decode JWT to get user ID
     const jwtUser = await this.authService.decodeJWT(token);
     const userId = jwtUser.userId;
-
-    console.log("\n=== COLLABORATIVE FILTERING (SVD-based) ===");
-    console.log("User ID:", userId);
+    console.log("Collaborative filtering ON SERVER")
+    //console.log("\n=== COLLABORATIVE FILTERING (SVD-based) ===");
+    //console.log("User ID:", userId);
 
     // Get all users and their liked projects
     const allLikes = await this.likeProjectModel
@@ -494,6 +494,7 @@ export class RecommendationService {
     // Get content-based recommendations (without pagination to calculate popularity)
     // const contentBased = await this.getContentBasedRecommendations(token, 1, 100); // pagination disabled
     const contentBased = await this.getContentBasedRecommendations(token, id);
+    console.log("Hybrid filtering ON SERVER")
 
     // Add popularity score based on likes
     const projectsWithPopularity = await Promise.all(
