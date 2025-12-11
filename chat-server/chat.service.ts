@@ -67,11 +67,20 @@ export class ChatService {
         throw new Error('Invalid response format from Python chatbot');
       }
 
-      return {
+      const result = {
         message: decoded.message,
         projects: decoded.projects || [],
         users: decoded.users || []
       };
+
+      this.logDebugInfo('FINAL_RESULT', {
+        message: result.message,
+        projectCount: result.projects.length,
+        projects: result.projects,
+        userCount: result.users.length
+      });
+
+      return result;
     } catch(error) {
       this.logError(error);
       return 'There was an error processing your request. Please try again later.';
