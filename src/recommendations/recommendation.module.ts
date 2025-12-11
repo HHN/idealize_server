@@ -7,6 +7,7 @@ import { UserSchema } from '../users/user/schemas/user.schema';
 import { LikeProjectSchema } from '../likes/like/schemas/like-project.schema';
 import { RecommendationSchema } from './recommendation/schemas/recommendation.schema';
 import { AuthModule } from '../auth/auth.module';
+import { LikeModule } from '../likes/like.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { AuthModule } from '../auth/auth.module';
       { name: 'Recommendation', schema: RecommendationSchema },
     ]),
     AuthModule,
+    LikeModule,
   ],
   controllers: [RecommendationController],
   providers: [RecommendationService],

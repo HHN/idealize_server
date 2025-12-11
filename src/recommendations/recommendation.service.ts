@@ -12,6 +12,7 @@ import {
   RecommendationDocument,
 } from "./recommendation/schemas/recommendation.schema";
 import { AuthService } from "../auth/auth.service";
+import { ProjectLikeService } from "../likes/like/services/like-project.service";
 
 export const tagWeight = 0.5;
 export const courseWeight = 0.3;
@@ -28,7 +29,8 @@ export class RecommendationService {
     private readonly likeProjectModel: Model<LikeProject>,
     @InjectModel("Recommendation")
     private readonly recommendationModel: Model<RecommendationDocument>,
-    private readonly authService: AuthService
+    private readonly authService: AuthService,
+    private readonly projectLikeService: ProjectLikeService
   ) {}
 
   /**
@@ -63,9 +65,7 @@ export class RecommendationService {
     // Get likes count for each project and sort by popularity
     const projectsWithLikes = await Promise.all(
       allProjects.map(async (project) => {
-        const likesCount = await this.likeProjectModel.countDocuments({
-          projectId: project._id,
-        });
+        const likesCount = await this.projectLikeService.likesCount(project._id.toString());
 
         return {
           ...project,
@@ -265,18 +265,29 @@ export class RecommendationService {
     const skip = (page - 1) * limit;
     const paginatedProjects = projectsWithScores.slice(skip, skip + limit);
 
+    // Add likes count to each project
+    const projectsWithLikes = await Promise.all(
+      paginatedProjects.map(async (project) => {
+        const likesCount = await this.projectLikeService.likesCount(project._id.toString());
+        return {
+          ...project,
+          likesCount,
+        };
+      })
+    );
+
     // Debug pagination
     console.log("=== PAGINATION DEBUG ===");
     console.log("Page:", page, "Limit:", limit, "Skip:", skip);
     console.log("Total projects (filtered):", total);
-    console.log("Returning projects:", paginatedProjects.length);
+    console.log("Returning projects:", projectsWithLikes.length);
     console.log("Expected last page:", Math.ceil(total / limit));
 
     const hasMore = skip + paginatedProjects.length < total;
     console.log("Has more pages:", hasMore);
 
     return {
-      projects: paginatedProjects,
+      projects: projectsWithLikes,
       total,
       page,
       limit,
@@ -465,16 +476,27 @@ export class RecommendationService {
       (a, b) => b.recommendationScore - a.recommendationScore
     );
 
+    // Add likes count to each project
+    const projectsWithLikes = await Promise.all(
+      projectsWithScores.map(async (project) => {
+        const likesCount = await this.projectLikeService.likesCount(project._id.toString());
+        return {
+          ...project,
+          likesCount,
+        };
+      })
+    );
+
     const total = rankedProjects.length;
     // const hasMore = skip + projectsWithScores.length < total;
     const hasMore = false;
 
-    console.log("Returning", projectsWithScores.length, "projects");
+    console.log("Returning", projectsWithLikes.length, "projects");
     console.log("Total available:", total);
     console.log("Has more:", hasMore);
 
     return {
-      projects: projectsWithScores,
+      projects: projectsWithLikes,
       total,
       page,
       limit,
@@ -500,9 +522,7 @@ export class RecommendationService {
     // Add popularity score based on likes
     const projectsWithPopularity = await Promise.all(
       contentBased.projects.map(async (project) => {
-        const likesCount = await this.likeProjectModel.countDocuments({
-          projectId: project._id,
-        });
+        const likesCount = await this.projectLikeService.likesCount(project._id.toString());
 
         // Normalize popularity score (max 1.0)
         const popularityScore = Math.min(likesCount / 10, 1.0);
