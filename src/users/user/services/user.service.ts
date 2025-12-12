@@ -14,6 +14,7 @@ import { DeleteUserDto } from '../dtos/delete-user.dto';
 import { ResetPasswordDto, ResetPasswordRequestDto } from '../dtos/reset-password.dto';
 import { UpdateUserByAdminDto } from '../dtos/update-user-by-admin.dto';
 import { Project, ProjectDocument } from 'src/projects/project/schemas/project.schema';
+import { EvaluationService } from 'src/evaluation/evaluation.service';
 
 @Injectable()
 export class UsersService {
@@ -22,6 +23,7 @@ export class UsersService {
     private mailerServive: MailerService,
     @InjectModel(User.name) private userModel: Model<UserDocument>,
     @InjectModel(Project.name) private projectModel: Model<ProjectDocument>,
+    private evaluationService: EvaluationService,
   ) { }
 
 
@@ -509,6 +511,13 @@ export class UsersService {
         // @ts-ignore - Suppress TS2590: Expression produces a union type that is too complex to represent
         .lean()
         .exec();
+
+      // Log first login for evaluation
+      await this.evaluationService.logUserLogin(
+        existingUser.firstName,
+        existingUser.lastName,
+        existingUser._id.toString()
+      );
 
       return {
         token,
