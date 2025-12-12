@@ -13,6 +13,9 @@ export class EvaluationService {
     try {
       const fullName = `${firstName}${lastName}`;
       
+      console.log(`[Evaluation] Working directory: ${process.cwd()}`);
+      console.log(`[Evaluation] JSON file path: ${this.jsonFilePath}`);
+      
       // Read existing data or create new object
       let data: any = {};
       if (fs.existsSync(this.jsonFilePath)) {
@@ -24,8 +27,6 @@ export class EvaluationService {
       if (!data[fullName]) {
         data[fullName] = {
           userId: userId,
-          firstName: firstName,
-          lastName: lastName,
           firstLoginTimestamp: new Date().toISOString(),
         };
 
