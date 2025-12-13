@@ -34,7 +34,10 @@ export class ChatGateway
             
             // The user information should already be available in the request due to the guard
             const user = client.handshake.auth.user; // Assuming the user data is attached by the guard
-            this.logger.log(`User: ${user.name}`);
+            if(user){
+                this.logger.log(`User: ${user.name}`);
+            }
+            
 
             // Send the user's message to the Python chatbot service
             this.logger.log(`Calling chatbot endpoint...`);
