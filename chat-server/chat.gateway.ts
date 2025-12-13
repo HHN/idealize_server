@@ -27,7 +27,7 @@ export class ChatGateway
     @SubscribeMessage('sendMessage')
     async handleMessage(
         @ConnectedSocket() client: Socket,
-        @MessageBody() payload: { message: string },
+        @MessageBody() payload: { message: string; firstName?: string; lastName?: string },
     ): Promise<void> {
         try {
             this.logger.log(`Received message from ${client.id}: "${payload.message}"`);
@@ -36,7 +36,11 @@ export class ChatGateway
 
             // Send the user's message to the Python chatbot service
             this.logger.log(`Calling chatbot endpoint...`);
-            const botResponse = await this.chatService.sendMessageToBot(payload.message);
+            const botResponse = await this.chatService.sendMessageToBot(
+                payload.message,
+                payload.firstName,
+                payload.lastName
+            );
             this.logger.log(`Got response from Python chatbot`);
 
             // Emit the bot's response back to the user

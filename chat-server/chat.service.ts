@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { EvaluationService } from 'src/evaluation/evaluation.service';
 
 // Currently not in use 
 @Injectable()
@@ -7,6 +8,7 @@ export class ChatService {
 
   constructor(
     private configService: ConfigService,
+    private evaluationService: EvaluationService,
   ) { }
 
   private logDebugInfo(stage: string, data: any): void {
@@ -26,7 +28,13 @@ export class ChatService {
     console.error('Full error:', error);
   }
 
-  async sendMessageToBot(message: string): Promise<any> {
+  async sendMessageToBot(
+    message: string,
+    firstName?: string,
+    lastName?: string
+  ): Promise<any> {
+    const startTime = Date.now();
+    
     try {
       const chatURL = this.configService.get<string>('chatbot.url');
       
@@ -79,6 +87,17 @@ export class ChatService {
         projects: result.projects,
         userCount: result.users.length
       });
+
+      // Calculate and log response time
+      const responseTime = Date.now() - startTime;
+      if (firstName && lastName) {
+        await this.evaluationService.logChatResponseTime(
+          firstName,
+          lastName,
+          responseTime,
+          message
+        );
+      }
 
       return result;
     } catch(error) {
