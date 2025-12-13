@@ -56,16 +56,17 @@ export class EvaluationService {
   ): Promise<void> {
     try {
       const fullName = `${firstName}${lastName}`;
-      
+      console.log("[LOG CHAT]: fullname: ", fullName)
       // Read existing data or create new object
       let data: any = {};
       if (fs.existsSync(this.jsonFilePath)) {
         const fileContent = fs.readFileSync(this.jsonFilePath, 'utf-8');
         data = JSON.parse(fileContent);
       }
-
+      console.log("[LOG CHAT]: filepath: ", this.jsonFilePath)
       // Initialize user entry if doesn't exist
       if (!data[fullName]) {
+        console.log("[LOG CHAT]: data cannot find")
         data[fullName] = {
           userId: 'unknown',
           firstLoginTimestamp: new Date().toISOString(),
@@ -75,6 +76,7 @@ export class EvaluationService {
 
       // Initialize chatRequests array if doesn't exist
       if (!data[fullName].chatRequests) {
+        console.log("[LOG CHAT]: Chatrequest key does not exist")
         data[fullName].chatRequests = [];
       }
 
@@ -84,7 +86,7 @@ export class EvaluationService {
         message: message.substring(0, 100), // Limit message length
         responseTimeMs: responseTimeMs
       });
-
+      console.log("[LOG CHAT]: Data pushed to json")
       // Write to file
       fs.writeFileSync(
         this.jsonFilePath,
