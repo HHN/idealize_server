@@ -34,7 +34,7 @@ export class ChatService {
     lastName?: string
   ): Promise<any> {
     const startTime = Date.now();
-    
+    console.log("STARTTIME: ",startTime)
     try {
       const chatURL = this.configService.get<string>('chatbot.url');
       
@@ -90,6 +90,7 @@ export class ChatService {
 
       // Calculate and log response time
       const responseTime = Date.now() - startTime;
+      console.log("Responsetime: ",responseTime)
       if (firstName && lastName) {
         await this.evaluationService.logChatResponseTime(
           firstName,
