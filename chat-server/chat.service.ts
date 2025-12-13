@@ -90,7 +90,7 @@ export class ChatService {
 
       // Calculate and log response time
       const responseTime = Date.now() - startTime;
-      console.log("Responsetime: ",responseTime)
+      console.log("Responsetime: ",responseTime, firstName, lastName)
       if (firstName && lastName) {
         await this.evaluationService.logChatResponseTime(
           firstName,
