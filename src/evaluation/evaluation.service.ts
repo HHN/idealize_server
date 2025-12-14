@@ -56,7 +56,17 @@ export class EvaluationService {
     userId?: string
   ): Promise<void> {
     try {
+      if (!userId) {
+        console.error('[Evaluation] userId is required for logChatResponseTime');
+        return;
+      }
+
       const user = this.userNames.get(userId);
+      if (!user) {
+        console.error(`[Evaluation] User not found in map for userId: ${userId}`);
+        return;
+      }
+
       console.log("[LOG CHAT]: fullname: ", user.firstName)
       const fullName = user.firstName + user.lastName
       // Read existing data or create new object

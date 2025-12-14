@@ -31,7 +31,8 @@ export class ChatService {
   async sendMessageToBot(
     message: string,
     firstName?: string,
-    lastName?: string
+    lastName?: string,
+    userId?: string
   ): Promise<any> {
     const startTime = Date.now();
     console.log("STARTTIME: ",startTime)
@@ -93,7 +94,8 @@ export class ChatService {
       console.log("Responsetime: ",responseTime)
       await this.evaluationService.logChatResponseTime(
         responseTime,
-        message
+        message,
+        userId
       );
       
 
