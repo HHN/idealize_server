@@ -23,6 +23,9 @@ export const studyProgramWeight = 0.2;
 export class RecommendationService {
   // In-memory cache für den aktuellen Algorithmus pro User
   private userAlgorithmCache: Map<string, 'basic-filtering' | 'content-based' | 'collaborative' | 'hybrid'> = new Map();
+  
+  // Cache für Chatbot-vorgeschlagene Projekte
+  private userChatbotProjectsCache: Map<string, Set<string>> = new Map();
 
   constructor(
     @InjectModel("Project")
@@ -54,6 +57,24 @@ export class RecommendationService {
     const algorithm = this.userAlgorithmCache.get(userId);
     console.log(`[RecommendationService] Getting algorithm for user ${userId}: ${algorithm}`);
     return algorithm;
+  }
+
+  /**
+   * Speichert Projekte, die dem User vom Chatbot vorgeschlagen wurden
+   */
+  setChatbotProjects(userId: string, projectIds: string[]): void {
+    this.userChatbotProjectsCache.set(userId, new Set(projectIds));
+    console.log(`[RecommendationService] Chatbot projects for user ${userId}:`, projectIds);
+  }
+
+  /**
+   * Prüft, ob ein Projekt dem User vom Chatbot vorgeschlagen wurde
+   */
+  isChatbotProject(userId: string, projectId: string): boolean {
+    const chatbotProjects = this.userChatbotProjectsCache.get(userId);
+    const isChatbot = chatbotProjects ? chatbotProjects.has(projectId) : false;
+    console.log(`[RecommendationService] Checking if project ${projectId} is chatbot suggestion for user ${userId}: ${isChatbot}`);
+    return isChatbot;
   }
 
   /**

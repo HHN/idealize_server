@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { EvaluationService } from 'src/evaluation/evaluation.service';
+import { RecommendationService } from 'src/recommendations/recommendation.service';
 
 // Currently not in use 
 @Injectable()
@@ -9,6 +10,7 @@ export class ChatService {
   constructor(
     private configService: ConfigService,
     private evaluationService: EvaluationService,
+    private recommendationService: RecommendationService,
   ) { }
 
   private logDebugInfo(stage: string, data: any): void {
@@ -88,6 +90,14 @@ export class ChatService {
         projects: result.projects,
         userCount: result.users.length
       });
+
+      // Speichere Chatbot-Projekte im Cache
+      if (userId && result.projects.length > 0) {
+        const projectIds = result.projects.map(p => p._id || p.id).filter(id => id);
+        if (projectIds.length > 0) {
+          this.recommendationService.setChatbotProjects(userId, projectIds);
+        }
+      }
 
       // Calculate and log response time
       const responseTime = Date.now() - startTime;

@@ -72,6 +72,7 @@ import { UsersService } from './users/user/services/user.service';
     AuthService,
     UsersService,
   ],
+  exports: [RecommendationModule],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

@@ -28,24 +28,48 @@ export class ProjectLikeService {
       const createdLike = new this.likeModel(createLikeDto);
       await createdLike.save();
       
-      // Hole den aktuellen Algorithmus aus dem RecommendationService
-      const algorithm = this.recommendationService.getUserAlgorithm(createLikeDto.userId);
-      console.log("[LIKE SERVICE]: Create new like. Algorithm from cache:", algorithm);
-      
-      // Log recommendation like if algorithm is provided
-      if (algorithm) {
+      // Prüfe zuerst, ob es ein Chatbot-Vorschlag ist
+      const isChatbotProject = this.recommendationService.isChatbotProject(
+        createLikeDto.userId, 
+        createLikeDto.projectId
+      );
+
+      if (isChatbotProject) {
+        // Chatbot-Like loggen
+        console.log("[LIKE SERVICE]: Create new like from chatbot suggestion");
         try {
           const user = await this.usersService.findById(createLikeDto.userId);
           if (user) {
-            await this.evaluationService.logRecommendationLike(
+            await this.evaluationService.logChatbotLike(
               user.firstName,
               user.lastName,
               createLikeDto.userId,
-              algorithm
+              createLikeDto.projectId
             );
           }
         } catch (error) {
-          console.error('[ProjectLikeService] Error logging recommendation like:', error);
+          console.error('[ProjectLikeService] Error logging chatbot like:', error);
+        }
+      } else {
+        // Bestehender Code für Recommendation-Algorithmus
+        const algorithm = this.recommendationService.getUserAlgorithm(createLikeDto.userId);
+        console.log("[LIKE SERVICE]: Create new like. Algorithm from cache:", algorithm);
+        
+        // Log recommendation like if algorithm is provided
+        if (algorithm) {
+          try {
+            const user = await this.usersService.findById(createLikeDto.userId);
+            if (user) {
+              await this.evaluationService.logRecommendationLike(
+                user.firstName,
+                user.lastName,
+                createLikeDto.userId,
+                algorithm
+              );
+            }
+          } catch (error) {
+            console.error('[ProjectLikeService] Error logging recommendation like:', error);
+          }
         }
       }
 

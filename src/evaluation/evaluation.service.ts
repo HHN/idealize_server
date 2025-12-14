@@ -185,4 +185,68 @@ export class EvaluationService {
       // Don't throw error to avoid breaking like flow
     }
   }
+
+  /**
+   * Logs a like for a project suggested by the chatbot
+   * @param firstName User's first name
+   * @param lastName User's last name
+   * @param userId User's ID
+   * @param projectId The project ID that was liked
+   */
+  async logChatbotLike(
+    firstName: string,
+    lastName: string,
+    userId: string,
+    projectId: string
+  ): Promise<void> {
+    try {
+      const fullName = `${firstName}${lastName}`;
+      
+      // Read existing data or create new object
+      let data: any = {};
+      if (fs.existsSync(this.jsonFilePath)) {
+        const fileContent = fs.readFileSync(this.jsonFilePath, 'utf-8');
+        data = JSON.parse(fileContent);
+      }
+
+      // Initialize user entry if doesn't exist
+      if (!data[fullName]) {
+        data[fullName] = {
+          userId: userId,
+          firstLoginTimestamp: new Date().toISOString(),
+          chatbot: {
+            likes: 0,
+            likedProjects: []
+          }
+        };
+      }
+
+      // Initialize chatbot object if doesn't exist
+      if (!data[fullName].chatbot) {
+        data[fullName].chatbot = {
+          likes: 0,
+          likedProjects: []
+        };
+      }
+
+      // Increment like counter and add project ID with timestamp
+      data[fullName].chatbot.likes++;
+      data[fullName].chatbot.likedProjects.push({
+        projectId: projectId,
+        timestamp: new Date().toISOString()
+      });
+
+      // Write to file
+      fs.writeFileSync(
+        this.jsonFilePath,
+        JSON.stringify(data, null, 2),
+        'utf-8'
+      );
+
+      console.log(`[Evaluation] Chatbot like logged for ${fullName} - Project: ${projectId} - Total chatbot likes: ${data[fullName].chatbot.likes}`);
+    } catch (error) {
+      console.error('[Evaluation] Error logging chatbot like:', error);
+      // Don't throw error to avoid breaking like flow
+    }
+  }
 }
