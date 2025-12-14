@@ -10,6 +10,8 @@ import { CommentLikeService } from './like/services/like-comment.service';
 import { NotificationSchema } from 'src/notifications/notification/schemas/notification.schema';
 import { NotificationService } from 'src/notifications/notification/services/notification.service';
 import { NotificationModule } from 'src/notifications/notifications.module';
+import { EvaluationModule } from 'src/evaluation/evaluation.module';
+import { UsersModule } from 'src/users/user.module';
 
 @Module({
     imports: [
@@ -19,6 +21,8 @@ import { NotificationModule } from 'src/notifications/notifications.module';
         ]),
         AuthModule,
         NotificationModule,
+        EvaluationModule,
+        UsersModule,
     ],
     controllers: [
         ProjectLikeController,

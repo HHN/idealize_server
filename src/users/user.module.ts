@@ -21,6 +21,7 @@ import { EvaluationModule } from 'src/evaluation/evaluation.module';
         UsersController,
         AdminUsersController
     ],
-    providers: [UsersService, AuthService]
+    providers: [UsersService, AuthService],
+    exports: [UsersService] // Export UsersService damit andere Module es nutzen können
 })
 export class UsersModule { }
