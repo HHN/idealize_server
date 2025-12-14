@@ -27,6 +27,7 @@ import { UserStatusMiddleware } from './shared/middlewares/user_status_mw';
 import { RequestIosAccessSchema } from './shared/schemas/request_ios_access.schema';
 import { SurveySchema } from './shared/schemas/survey.schema';
 import { EvaluationModule } from './evaluation/evaluation.module';
+import { UsersService } from './users/user/services/user.service';
 
 @Module({
   imports: [
@@ -69,6 +70,7 @@ import { EvaluationModule } from './evaluation/evaluation.module';
     ChatGateway,
     ChatService,
     AuthService,
+    UsersService,
   ],
 })
 export class AppModule implements NestModule {

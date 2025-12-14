@@ -14,6 +14,7 @@ import { Injectable, Logger, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/jwt.guard';
 import { AuthService } from 'src/auth/auth.service';
 import { ChatService } from './chat.service';
+import { UsersService } from 'src/users/user/services/user.service';
 
 @WebSocketGateway({ namespace: '/chat', cors: true })
 @Injectable()
@@ -25,6 +26,7 @@ export class ChatGateway
     constructor(
         private chatService: ChatService,
         private authService: AuthService,
+        private usersService: UsersService,
     ) { }
 
     // @UseGuards(JwtAuthGuard) // Use the guard to protect the WebSocket connection
@@ -46,29 +48,30 @@ export class ChatGateway
                     // Token verifizieren und User-Daten extrahieren
                     const decoded = await this.authService.verifyToken(token);
                     const userId = decoded.userId; // oder decoded.id, je nach Token-Struktur
-                    this.logger.log(`UserId : ${userId}, ${decoded.firstName}`)
-                    // Jetzt hast du userId und kannst sie verwenden
+
+                    // User-Objekt aus der DB holen
+                    const user = await this.usersService.findById(userId);
+                    this.logger.log(`User : ${user.firstName}, ${user.lastName}`)
+                    // Send the user's message to the Python chatbot service
+                    this.logger.log(`Calling chatbot endpoint...`);
+                    const botResponse = await this.chatService.sendMessageToBot(
+                        payload.message,
+                        user.firstName,
+                        user.lastName,
+                        userId
+                    );
+                    this.logger.log(`Got response from Python chatbot`);
+
+                    // Emit the bot's response back to the user
+                    client.emit('receiveMessage', { message: botResponse });
+                    this.logger.log(`Sent response back to client ${client.id}`);
                 }
             } catch (error) {
                 this.logger.error('Auth error:', error);
             }
             
             // The user information should already be available in the request due to the guard
-            const user = client.handshake.auth.user; // Assuming the user data is attached by the guard
-            
-            // Send the user's message to the Python chatbot service
-            this.logger.log(`Calling chatbot endpoint...`);
-            const botResponse = await this.chatService.sendMessageToBot(
-                payload.message,
-                payload.firstName,
-                payload.lastName,
-                payload.userId
-            );
-            this.logger.log(`Got response from Python chatbot`);
-
-            // Emit the bot's response back to the user
-            client.emit('receiveMessage', { message: botResponse });
-            this.logger.log(`Sent response back to client ${client.id}`);
+            // const user = client.handshake.auth.user; // Assuming the user data is attached by the guard
         } catch (error) {
             this.logger.error(`Error in handleMessage:`, error);
             client.emit('error', 'Failed to communicate with chatbot');
