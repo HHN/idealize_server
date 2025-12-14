@@ -95,6 +95,8 @@ export class ChatService {
       await this.evaluationService.logChatResponseTime(
         responseTime,
         message,
+        firstName,
+        lastName,
         userId
       );
       

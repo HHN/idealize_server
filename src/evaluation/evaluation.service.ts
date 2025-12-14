@@ -5,7 +5,6 @@ import * as path from 'path';
 @Injectable()
 export class EvaluationService {
   private readonly jsonFilePath = path.join(process.cwd(), 'evaluation-data.json');
-  private userNames = new Map<string, { firstName: string, lastName: string }>();
 
   /**
    * Saves user login data to JSON file on first login
@@ -13,7 +12,6 @@ export class EvaluationService {
   async logUserLogin(firstName: string, lastName: string, userId: string): Promise<void> {
     try {
       const fullName = `${firstName}${lastName}`;
-      this.userNames.set(userId, { firstName, lastName });
       
       console.log(`[Evaluation] Working directory: ${process.cwd()}`);
       console.log(`[Evaluation] JSON file path: ${this.jsonFilePath}`);
@@ -53,22 +51,14 @@ export class EvaluationService {
   async logChatResponseTime(
     responseTimeMs: number,
     message: string,
-    userId?: string
+    firstName: string,
+    lastName: string,
+    userId: string
   ): Promise<void> {
     try {
-      if (!userId) {
-        console.error('[Evaluation] userId is required for logChatResponseTime');
-        return;
-      }
 
-      const user = this.userNames.get(userId);
-      if (!user) {
-        console.error(`[Evaluation] User not found in map for userId: ${userId}`);
-        return;
-      }
-
-      console.log("[LOG CHAT]: fullname: ", user.firstName)
-      const fullName = user.firstName + user.lastName
+      console.log("[LOG CHAT]: fullname: ", firstName+lastName)
+      const fullName = firstName + lastName
       // Read existing data or create new object
       let data: any = {};
       if (fs.existsSync(this.jsonFilePath)) {
@@ -80,7 +70,7 @@ export class EvaluationService {
       if (!data[fullName]) {
         console.log("[LOG CHAT]: data cannot find")
         data[fullName] = {
-          userId: 'unknown',
+          userId: userId,
           firstLoginTimestamp: new Date().toISOString(),
           chatRequests: []
         };

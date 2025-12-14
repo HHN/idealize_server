@@ -53,14 +53,12 @@ export class ChatGateway
                     const user = await this.usersService.findById(userId);
                     this.logger.log(`User : ${user.firstName}, ${user.lastName}`)
                     // Send the user's message to the Python chatbot service
-                    this.logger.log(`Calling chatbot endpoint...`);
                     const botResponse = await this.chatService.sendMessageToBot(
                         payload.message,
                         user.firstName,
                         user.lastName,
                         userId
                     );
-                    this.logger.log(`Got response from Python chatbot`);
 
                     // Emit the bot's response back to the user
                     client.emit('receiveMessage', { message: botResponse });
