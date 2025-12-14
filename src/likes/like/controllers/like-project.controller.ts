@@ -18,11 +18,7 @@ export class ProjectLikeController {
     description: 'This endpoint creates a like',
   })
   @ApiHeader({ name: 'Authorization', required: false })
-  @UsePipes(new ValidationPipe({ 
-    transform: true,
-    whitelist: false,
-    forbidNonWhitelisted: false 
-  }))
+  @UsePipes(new ValidationPipe({ transform: true }))
   async create(@Body() createLikeDto: CreateProjectLikeDto,  @Headers('Authorization') token: string): Promise<boolean> {
     return this.likeService.create(createLikeDto, token);
   }

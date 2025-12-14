@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { RecommendationController } from './recommendation/controllers/recommendation.controller';
 import { RecommendationService } from './recommendation.service';
@@ -19,7 +19,7 @@ import { CommentsModule } from '../comments/comment.module';
       { name: 'Recommendation', schema: RecommendationSchema },
     ]),
     AuthModule,
-    LikeModule,
+    forwardRef(() => LikeModule),
     CommentsModule,
   ],
   controllers: [RecommendationController],

@@ -21,6 +21,9 @@ export const studyProgramWeight = 0.2;
 
 @Injectable()
 export class RecommendationService {
+  // In-memory cache für den aktuellen Algorithmus pro User
+  private userAlgorithmCache: Map<string, 'basic-filtering' | 'content-based' | 'collaborative' | 'hybrid'> = new Map();
+
   constructor(
     @InjectModel("Project")
     private readonly projectModel: Model<ProjectDocument>,
@@ -34,6 +37,23 @@ export class RecommendationService {
     private readonly projectLikeService: ProjectLikeService,
     private readonly commentsService: CommentsService
   ) {}
+
+  /**
+   * Speichert den aktuellen Algorithmus für einen User
+   */
+  private setUserAlgorithm(userId: string, algorithm: 'basic-filtering' | 'content-based' | 'collaborative' | 'hybrid'): void {
+    this.userAlgorithmCache.set(userId, algorithm);
+    console.log(`[RecommendationService] Algorithm for user ${userId} set to: ${algorithm}`);
+  }
+
+  /**
+   * Gibt den aktuellen Algorithmus für einen User zurück
+   */
+  getUserAlgorithm(userId: string): 'basic-filtering' | 'content-based' | 'collaborative' | 'hybrid' | undefined {
+    const algorithm = this.userAlgorithmCache.get(userId);
+    console.log(`[RecommendationService] Getting algorithm for user ${userId}: ${algorithm}`);
+    return algorithm;
+  }
 
   /**
    * Baseline Filtering: Non-personalized approach. Recommending projects ranked by popularity (likes)
@@ -87,6 +107,9 @@ export class RecommendationService {
     projectsWithLikes.sort((a, b) => b.likes - a.likes);
 
     const total = projectsWithLikes.length;
+
+    // Speichere den verwendeten Algorithmus für diesen User
+    this.setUserAlgorithm(userId, 'basic-filtering');
 
     return {
       projects: projectsWithLikes,
@@ -296,6 +319,9 @@ export class RecommendationService {
 
     const hasMore = skip + paginatedProjects.length < total;
     console.log("Has more pages:", hasMore);
+
+    // Speichere den verwendeten Algorithmus für diesen User
+    this.setUserAlgorithm(userId, 'content-based');
 
     return {
       projects: projectsWithLikes,
@@ -513,6 +539,9 @@ export class RecommendationService {
     console.log("Total available:", total);
     console.log("Has more:", hasMore);
 
+    // Speichere den verwendeten Algorithmus für diesen User
+    this.setUserAlgorithm(userId, 'collaborative');
+
     return {
       projects: projectsWithLikes,
       total,
@@ -569,6 +598,13 @@ export class RecommendationService {
     const total = projectsWithPopularity.length;
     //console.log('DEBUG - For you - Hyprid:', paginatedProjects);
     console.log("DEBUG - For you - Hyprid:", projectsWithPopularity);
+
+    // Decode JWT to get user ID for caching
+    const jwtUser = await this.authService.decodeJWT(token);
+    const userId = jwtUser.userId;
+
+    // Speichere den verwendeten Algorithmus für diesen User
+    this.setUserAlgorithm(userId, 'hybrid');
 
     return {
       // projects: paginatedProjects,

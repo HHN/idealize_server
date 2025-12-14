@@ -1,10 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject, forwardRef } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { AuthService } from 'src/auth/auth.service';
 import { NotificationService } from 'src/notifications/notification/services/notification.service';
 import { EvaluationService } from 'src/evaluation/evaluation.service';
 import { UsersService } from 'src/users/user/services/user.service';
+import { RecommendationService } from 'src/recommendations/recommendation.service';
 import { CreateProjectLikeDto } from '../dtos/create-project-like.dto';
 import { LikeProjectDocument, LikeProject } from '../schemas/like-project.schema';
 
@@ -16,6 +17,8 @@ export class ProjectLikeService {
     private readonly notificationService: NotificationService,
     private readonly evaluationService: EvaluationService,
     private readonly usersService: UsersService,
+    @Inject(forwardRef(() => RecommendationService))
+    private readonly recommendationService: RecommendationService,
   ) { }
 
   async create(createLikeDto: CreateProjectLikeDto, token: string): Promise<boolean> {
@@ -24,9 +27,13 @@ export class ProjectLikeService {
     if (isLiked === null) {
       const createdLike = new this.likeModel(createLikeDto);
       await createdLike.save();
-      console.log("[LIKE SERVICE]: Create new like. CreateLikeDto algorithm:"+createLikeDto.algorithm)
+      
+      // Hole den aktuellen Algorithmus aus dem RecommendationService
+      const algorithm = this.recommendationService.getUserAlgorithm(createLikeDto.userId);
+      console.log("[LIKE SERVICE]: Create new like. Algorithm from cache:", algorithm);
+      
       // Log recommendation like if algorithm is provided
-      if (createLikeDto.algorithm) {
+      if (algorithm) {
         try {
           const user = await this.usersService.findById(createLikeDto.userId);
           console.log("USER?????: "+ user);
@@ -36,7 +43,7 @@ export class ProjectLikeService {
               user.firstName,
               user.lastName,
               createLikeDto.userId,
-              createLikeDto.algorithm
+              algorithm
             );
           }
         } catch (error) {

@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ProjectLikeController } from './like/controllers/like-project.controller';
 import { ProjectLikeService } from './like/services/like-project.service';
@@ -12,6 +12,7 @@ import { NotificationService } from 'src/notifications/notification/services/not
 import { NotificationModule } from 'src/notifications/notifications.module';
 import { EvaluationModule } from 'src/evaluation/evaluation.module';
 import { UsersModule } from 'src/users/user.module';
+import { RecommendationModule } from 'src/recommendations/recommendation.module';
 
 @Module({
     imports: [
@@ -23,6 +24,7 @@ import { UsersModule } from 'src/users/user.module';
         NotificationModule,
         EvaluationModule,
         UsersModule,
+        forwardRef(() => RecommendationModule),
     ],
     controllers: [
         ProjectLikeController,
