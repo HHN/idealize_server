@@ -28,6 +28,20 @@ export class EvaluationService {
         data[fullName] = {
           userId: userId,
           firstLoginTimestamp: new Date().toISOString(),
+          recommendations: {
+            'basic-filtering': {
+              likes: 0
+            },
+            'content-based': {
+              likes: 0
+            },
+            'collaborative': {
+              likes: 0
+            },
+            'hybrid': {
+              likes: 0
+            }
+          }
         };
 
         // Write to file
@@ -100,6 +114,75 @@ export class EvaluationService {
     } catch (error) {
       console.error('[Evaluation] Error logging chat response time:', error);
       // Don't throw error to avoid breaking chat flow
+    }
+  }
+
+  /**
+   * Logs a like for a specific recommendation algorithm
+   * @param firstName User's first name
+   * @param lastName User's last name
+   * @param userId User's ID
+   * @param algorithm The recommendation algorithm used ('basic-filtering', 'content-based', 'collaborative', 'hybrid')
+   */
+  async logRecommendationLike(
+    firstName: string,
+    lastName: string,
+    userId: string,
+    algorithm: 'basic-filtering' | 'content-based' | 'collaborative' | 'hybrid'
+  ): Promise<void> {
+    try {
+      const fullName = `${firstName}${lastName}`;
+      
+      // Read existing data or create new object
+      let data: any = {};
+      if (fs.existsSync(this.jsonFilePath)) {
+        const fileContent = fs.readFileSync(this.jsonFilePath, 'utf-8');
+        data = JSON.parse(fileContent);
+      }
+
+      // Initialize user entry if doesn't exist
+      if (!data[fullName]) {
+        data[fullName] = {
+          userId: userId,
+          firstLoginTimestamp: new Date().toISOString(),
+          recommendations: {
+            'basic-filtering': { likes: 0 },
+            'content-based': { likes: 0 },
+            'collaborative': { likes: 0 },
+            'hybrid': { likes: 0 }
+          }
+        };
+      }
+
+      // Initialize recommendations object if doesn't exist
+      if (!data[fullName].recommendations) {
+        data[fullName].recommendations = {
+          'basic-filtering': { likes: 0 },
+          'content-based': { likes: 0 },
+          'collaborative': { likes: 0 },
+          'hybrid': { likes: 0 }
+        };
+      }
+
+      // Initialize specific algorithm if doesn't exist
+      if (!data[fullName].recommendations[algorithm]) {
+        data[fullName].recommendations[algorithm] = { likes: 0 };
+      }
+
+      // Increment like counter for the algorithm
+      data[fullName].recommendations[algorithm].likes++;
+
+      // Write to file
+      fs.writeFileSync(
+        this.jsonFilePath,
+        JSON.stringify(data, null, 2),
+        'utf-8'
+      );
+
+      console.log(`[Evaluation] Recommendation like logged for ${fullName} - Algorithm: ${algorithm} - Total likes: ${data[fullName].recommendations[algorithm].likes}`);
+    } catch (error) {
+      console.error('[Evaluation] Error logging recommendation like:', error);
+      // Don't throw error to avoid breaking like flow
     }
   }
 }

@@ -1,5 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsNotEmpty, IsString } from "class-validator";
+import { IsNotEmpty, IsString, IsOptional } from "class-validator";
 
 export class CreateProjectLikeDto {
   @ApiProperty()
@@ -15,5 +15,10 @@ export class CreateProjectLikeDto {
   @IsNotEmpty()
   @IsString()
   readonly projectOwnerId: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  readonly algorithm?: 'basic-filtering' | 'content-based' | 'collaborative' | 'hybrid';
 
 }

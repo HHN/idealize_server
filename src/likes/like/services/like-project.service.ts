@@ -3,6 +3,8 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { AuthService } from 'src/auth/auth.service';
 import { NotificationService } from 'src/notifications/notification/services/notification.service';
+import { EvaluationService } from 'src/evaluation/evaluation.service';
+import { UsersService } from 'src/users/user/services/user.service';
 import { CreateProjectLikeDto } from '../dtos/create-project-like.dto';
 import { LikeProjectDocument, LikeProject } from '../schemas/like-project.schema';
 
@@ -12,6 +14,8 @@ export class ProjectLikeService {
     @InjectModel(LikeProject.name) private likeModel: Model<LikeProjectDocument>,
     private readonly authService: AuthService,
     private readonly notificationService: NotificationService,
+    private readonly evaluationService: EvaluationService,
+    private readonly usersService: UsersService,
   ) { }
 
   async create(createLikeDto: CreateProjectLikeDto, token: string): Promise<boolean> {
@@ -20,6 +24,23 @@ export class ProjectLikeService {
     if (isLiked === null) {
       const createdLike = new this.likeModel(createLikeDto);
       await createdLike.save();
+
+      // Log recommendation like if algorithm is provided
+      if (createLikeDto.algorithm) {
+        try {
+          const user = await this.usersService.findById(createLikeDto.userId);
+          if (user) {
+            await this.evaluationService.logRecommendationLike(
+              user.firstName,
+              user.lastName,
+              createLikeDto.userId,
+              createLikeDto.algorithm
+            );
+          }
+        } catch (error) {
+          console.error('[ProjectLikeService] Error logging recommendation like:', error);
+        }
+      }
 
       if (createLikeDto.userId != createLikeDto.projectOwnerId) {
         // Create a notification
