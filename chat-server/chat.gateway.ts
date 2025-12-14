@@ -30,7 +30,7 @@ export class ChatGateway
         @MessageBody() payload: { message: string; firstName?: string; lastName?: string },
     ): Promise<void> {
         try {
-            this.logger.log(`Received message from ${client.id}: "${payload.message}"`);
+            this.logger.log(`Received message from ${client.data.firstName}: "${payload.message}"`);
             
             // The user information should already be available in the request due to the guard
             const user = client.handshake.auth.user; // Assuming the user data is attached by the guard
