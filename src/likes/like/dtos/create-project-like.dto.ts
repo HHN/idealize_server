@@ -1,5 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsNotEmpty, IsString, IsOptional } from "class-validator";
+import { IsNotEmpty, IsString, IsOptional, IsIn } from "class-validator";
 
 export class CreateProjectLikeDto {
   @ApiProperty()
@@ -16,9 +16,14 @@ export class CreateProjectLikeDto {
   @IsString()
   readonly projectOwnerId: string;
 
-  @ApiProperty({ required: false })
+  @ApiProperty({ 
+    required: false,
+    enum: ['basic-filtering', 'content-based', 'collaborative', 'hybrid'],
+    description: 'Algorithm used for recommendation'
+  })
   @IsOptional()
   @IsString()
+  @IsIn(['basic-filtering', 'content-based', 'collaborative', 'hybrid'])
   readonly algorithm?: 'basic-filtering' | 'content-based' | 'collaborative' | 'hybrid';
 
 }

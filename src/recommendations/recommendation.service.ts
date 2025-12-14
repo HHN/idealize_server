@@ -73,7 +73,6 @@ export class RecommendationService {
         const likes = await this.projectLikeService.likesCount(project._id.toString());
         const isLiked = likedProjectsData.likes.findIndex(item => item.projectId.toString() === project._id.toString()) !== -1;
         const comments = await this.commentsService.findAllOfCommentsCount(project._id.toString());
-        console.log("Project: \n" + project.title + "\n With amount of likes: " + likes)
 
         return {
           ...project,
@@ -134,11 +133,11 @@ export class RecommendationService {
 
     // Debug: Log user interests
     // if Debugs showing empty update the reference ids in the userprofile with existing ids
-    console.log("DEBUG - User ID:", userId);
-    console.log("DEBUG - User Name:", user.username);
-    console.log("DEBUG - User interestedTags:", user.interestedTags);
-    console.log("DEBUG - User interestedCourses:", user.interestedCourses);
-    console.log("DEBUG - User studyprograms:", user.studyPrograms);
+    // console.log("DEBUG - User ID:", userId);
+    // console.log("DEBUG - User Name:", user.username);
+    // console.log("DEBUG - User interestedTags:", user.interestedTags);
+    // console.log("DEBUG - User interestedCourses:", user.interestedCourses);
+    // console.log("DEBUG - User studyprograms:", user.studyPrograms);
 
     // Get user's liked projects to exclude them
     const likedProjectsData = await this.projectLikeService.findAll("", userId);
@@ -157,9 +156,6 @@ export class RecommendationService {
     const userCourseIds = user.interestedCourses
       ? user.interestedCourses.map((course: any) => course._id.toString())
       : [];
-
-    console.log("DEBUG - User Tag IDs:", userTagIds);
-    console.log("DEBUG - User Course IDs:", userCourseIds);
 
     // Check if user has any interests defined
     if (userTagIds.length === 0 && userCourseIds.length === 0) {
