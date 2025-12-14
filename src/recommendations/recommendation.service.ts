@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Inject, forwardRef } from "@nestjs/common"; //remove Inject, forwardRef if it doesnt work
 import { InjectModel } from "@nestjs/mongoose";
 import { Model, Types } from "mongoose";
 import {
@@ -34,6 +34,7 @@ export class RecommendationService {
     @InjectModel("Recommendation")
     private readonly recommendationModel: Model<RecommendationDocument>,
     private readonly authService: AuthService,
+    @Inject(forwardRef(() => ProjectLikeService)) // remove if it doesnt work
     private readonly projectLikeService: ProjectLikeService,
     private readonly commentsService: CommentsService
   ) {}
