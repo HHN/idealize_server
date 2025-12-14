@@ -24,7 +24,7 @@ export class ProjectLikeService {
     if (isLiked === null) {
       const createdLike = new this.likeModel(createLikeDto);
       await createdLike.save();
-      console.log("[LIKE SERVICE]: Create new like")
+      console.log("[LIKE SERVICE]: Create new like. CreateLikeDto algorithm:"+createLikeDto.algorithm)
       // Log recommendation like if algorithm is provided
       if (createLikeDto.algorithm) {
         try {
