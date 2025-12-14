@@ -5,8 +5,7 @@ import * as path from 'path';
 @Injectable()
 export class EvaluationService {
   private readonly jsonFilePath = path.join(process.cwd(), 'evaluation-data.json');
-  private firstName;
-  private lastName;
+  private userNames = new Map<string, { firstName: string, lastName: string }>();
 
   /**
    * Saves user login data to JSON file on first login
@@ -14,8 +13,7 @@ export class EvaluationService {
   async logUserLogin(firstName: string, lastName: string, userId: string): Promise<void> {
     try {
       const fullName = `${firstName}${lastName}`;
-      this.firstName = firstName;
-      this.lastName = lastName;
+      this.userNames.set(userId, { firstName, lastName });
       
       console.log(`[Evaluation] Working directory: ${process.cwd()}`);
       console.log(`[Evaluation] JSON file path: ${this.jsonFilePath}`);
@@ -54,11 +52,13 @@ export class EvaluationService {
    */
   async logChatResponseTime(
     responseTimeMs: number,
-    message: string
+    message: string,
+    userId?: string
   ): Promise<void> {
     try {
-      const fullName = `${this.firstName}${this.lastName}`;
-      console.log("[LOG CHAT]: fullname: ", fullName)
+      const user = this.userNames.get(userId);
+      console.log("[LOG CHAT]: fullname: ", user.firstName)
+      const fullName = user.firstName + user.lastName
       // Read existing data or create new object
       let data: any = {};
       if (fs.existsSync(this.jsonFilePath)) {
