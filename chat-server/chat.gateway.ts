@@ -12,6 +12,7 @@ import { Server, Socket } from 'socket.io';
 import { Injectable, Logger, UseGuards } from '@nestjs/common';
 
 import { JwtAuthGuard } from 'src/auth/jwt.guard';
+import { AuthService } from 'src/auth/auth.service';
 import { ChatService } from './chat.service';
 
 @WebSocketGateway({ namespace: '/chat', cors: true })
@@ -21,7 +22,10 @@ export class ChatGateway
     @WebSocketServer() server: Server;
     private logger: Logger = new Logger('ChatGateway');
 
-    constructor(private chatService: ChatService) { }
+    constructor(
+        private chatService: ChatService,
+        private authService: AuthService,
+    ) { }
 
     // @UseGuards(JwtAuthGuard) // Use the guard to protect the WebSocket connection
     @SubscribeMessage('sendMessage')
@@ -31,6 +35,23 @@ export class ChatGateway
     ): Promise<void> {
         try {
             this.logger.log(`Received message from ${client.id}: "${payload.message}"`);
+            try {
+                // Token holen
+                const authHeader = client.handshake.headers.authorization || 
+                                client.handshake.auth?.authorization;
+                const token = authHeader?.split(' ')[1];
+
+                this.logger.log(`User token: ${token}`)
+                if (token) {
+                    // Token verifizieren und User-Daten extrahieren
+                    const decoded = await this.authService.verifyToken(token);
+                    const userId = decoded.userId; // oder decoded.id, je nach Token-Struktur
+                    this.logger.log(`UserId : ${userId}`)
+                    // Jetzt hast du userId und kannst sie verwenden
+                }
+            } catch (error) {
+                this.logger.error('Auth error:', error);
+            }
             
             // The user information should already be available in the request due to the guard
             const user = client.handshake.auth.user; // Assuming the user data is attached by the guard
