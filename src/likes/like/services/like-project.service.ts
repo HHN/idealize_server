@@ -29,7 +29,9 @@ export class ProjectLikeService {
       if (createLikeDto.algorithm) {
         try {
           const user = await this.usersService.findById(createLikeDto.userId);
+          console.log("USER?????: "+ user);
           if (user) {
+            console.log("User found!");
             await this.evaluationService.logRecommendationLike(
               user.firstName,
               user.lastName,
