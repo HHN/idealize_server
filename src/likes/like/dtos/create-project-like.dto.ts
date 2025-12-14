@@ -16,9 +16,4 @@ export class CreateProjectLikeDto {
   @IsString()
   readonly projectOwnerId: string;
 
-  // @ApiProperty({ required: false })
-  // @IsOptional()
-  // @IsString()
-  // readonly algorithm?: 'basic-filtering' | 'content-based' | 'collaborative' | 'hybrid';
-
 }
