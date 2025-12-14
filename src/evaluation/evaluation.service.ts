@@ -5,6 +5,8 @@ import * as path from 'path';
 @Injectable()
 export class EvaluationService {
   private readonly jsonFilePath = path.join(process.cwd(), 'evaluation-data.json');
+  private firstName;
+  private lastName;
 
   /**
    * Saves user login data to JSON file on first login
@@ -12,6 +14,8 @@ export class EvaluationService {
   async logUserLogin(firstName: string, lastName: string, userId: string): Promise<void> {
     try {
       const fullName = `${firstName}${lastName}`;
+      this.firstName = firstName;
+      this.lastName = lastName;
       
       console.log(`[Evaluation] Working directory: ${process.cwd()}`);
       console.log(`[Evaluation] JSON file path: ${this.jsonFilePath}`);
@@ -49,13 +53,11 @@ export class EvaluationService {
    * Logs chat response time for a user
    */
   async logChatResponseTime(
-    firstName: string,
-    lastName: string,
     responseTimeMs: number,
     message: string
   ): Promise<void> {
     try {
-      const fullName = `${firstName}${lastName}`;
+      const fullName = `${this.firstName}${this.lastName}`;
       console.log("[LOG CHAT]: fullname: ", fullName)
       // Read existing data or create new object
       let data: any = {};

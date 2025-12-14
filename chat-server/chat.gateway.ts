@@ -30,16 +30,11 @@ export class ChatGateway
         @MessageBody() payload: { message: string; firstName?: string; lastName?: string },
     ): Promise<void> {
         try {
-            this.logger.log(`Received message from ${client.data.firstName}: "${payload.message}"`);
+            this.logger.log(`Received message from ${client.id}: "${payload.message}"`);
             
             // The user information should already be available in the request due to the guard
             const user = client.handshake.auth.user; // Assuming the user data is attached by the guard
             
-            const firstName = client.handshake.query.firstName;
-            const lastName = client.handshake.query.lastName;
-            console.log(`USer name: ${firstName}, ${lastName}`)
-            
-
             // Send the user's message to the Python chatbot service
             this.logger.log(`Calling chatbot endpoint...`);
             const botResponse = await this.chatService.sendMessageToBot(

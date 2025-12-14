@@ -93,8 +93,6 @@ export class ChatService {
       console.log("Responsetime: ",responseTime, firstName, lastName)
       if (firstName && lastName) {
         await this.evaluationService.logChatResponseTime(
-          firstName,
-          lastName,
           responseTime,
           message
         );
