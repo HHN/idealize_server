@@ -46,7 +46,7 @@ export class ChatGateway
                     // Token verifizieren und User-Daten extrahieren
                     const decoded = await this.authService.verifyToken(token);
                     const userId = decoded.userId; // oder decoded.id, je nach Token-Struktur
-                    this.logger.log(`UserId : ${userId}`)
+                    this.logger.log(`UserId : ${userId}, ${decoded.firstName}`)
                     // Jetzt hast du userId und kannst sie verwenden
                 }
             } catch (error) {
