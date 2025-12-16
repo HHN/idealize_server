@@ -395,8 +395,8 @@ export class RecommendationService {
     console.log("Returning projects:", projectsWithLikes.length);
     console.log("Expected last page:", Math.ceil(total / limit));
 
-    const hasMore = skip + paginatedProjects.length < total;
-    // const hasMore = false;
+    // const hasMore = skip + paginatedProjects.length < total;
+    const hasMore = false;
     console.log("Has more pages:", hasMore);
 
     // Log recommendation count for evaluation
@@ -406,7 +406,8 @@ export class RecommendationService {
         user.lastName,
         userId,
         "content-based",
-        total
+        // total
+        projectsWithLikes.length
       );
     }
 
@@ -637,8 +638,8 @@ export class RecommendationService {
     );
 
     const total = rankedProjects.length;
-    const hasMore = skip + projectsWithScores.length < total;
-    // const hasMore = false;
+    // const hasMore = skip + projectsWithScores.length < total;
+    const hasMore = false;
 
     console.log("Returning", projectsWithLikes.length, "projects");
     console.log("Total available:", total);
@@ -651,8 +652,8 @@ export class RecommendationService {
         user.lastName,
         userId,
         "collaborative",
-        total
-        // projectsWithLikes.length
+        // total
+        projectsWithLikes.length
       );
     }
 
