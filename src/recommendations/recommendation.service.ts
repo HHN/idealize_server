@@ -14,6 +14,7 @@ import {
 import { AuthService } from "../auth/auth.service";
 import { ProjectLikeService } from "../likes/like/services/like-project.service";
 import { CommentsService } from "../comments/comment/services/comment.service";
+import { EvaluationService } from "../evaluation/evaluation.service";
 
 export const tagWeight = 0.5;
 export const courseWeight = 0.3;
@@ -22,8 +23,11 @@ export const studyProgramWeight = 0.2;
 @Injectable()
 export class RecommendationService {
   // In-memory cache für den aktuellen Algorithmus pro User
-  private userAlgorithmCache: Map<string, 'basic-filtering' | 'content-based' | 'collaborative' | 'hybrid'> = new Map();
-  
+  private userAlgorithmCache: Map<
+    string,
+    "basic-filtering" | "content-based" | "collaborative" | "hybrid"
+  > = new Map();
+
   // Cache für Chatbot-vorgeschlagene Projekte
   private userChatbotProjectsCache: Map<string, Set<string>> = new Map();
 
@@ -39,23 +43,38 @@ export class RecommendationService {
     private readonly authService: AuthService,
     @Inject(forwardRef(() => ProjectLikeService)) // remove if it doesnt work
     private readonly projectLikeService: ProjectLikeService,
-    private readonly commentsService: CommentsService
+    private readonly commentsService: CommentsService,
+    private readonly evaluationService: EvaluationService
   ) {}
 
   /**
    * Speichert den aktuellen Algorithmus für einen User
    */
-  private setUserAlgorithm(userId: string, algorithm: 'basic-filtering' | 'content-based' | 'collaborative' | 'hybrid'): void {
+  private setUserAlgorithm(
+    userId: string,
+    algorithm: "basic-filtering" | "content-based" | "collaborative" | "hybrid"
+  ): void {
     this.userAlgorithmCache.set(userId, algorithm);
-    console.log(`[RecommendationService] Algorithm for user ${userId} set to: ${algorithm}`);
+    console.log(
+      `[RecommendationService] Algorithm for user ${userId} set to: ${algorithm}`
+    );
   }
 
   /**
    * Gibt den aktuellen Algorithmus für einen User zurück
    */
-  getUserAlgorithm(userId: string): 'basic-filtering' | 'content-based' | 'collaborative' | 'hybrid' | undefined {
+  getUserAlgorithm(
+    userId: string
+  ):
+    | "basic-filtering"
+    | "content-based"
+    | "collaborative"
+    | "hybrid"
+    | undefined {
     const algorithm = this.userAlgorithmCache.get(userId);
-    console.log(`[RecommendationService] Getting algorithm for user ${userId}: ${algorithm}`);
+    console.log(
+      `[RecommendationService] Getting algorithm for user ${userId}: ${algorithm}`
+    );
     return algorithm;
   }
 
@@ -64,7 +83,10 @@ export class RecommendationService {
    */
   setChatbotProjects(userId: string, projectIds: string[]): void {
     this.userChatbotProjectsCache.set(userId, new Set(projectIds));
-    console.log(`[RecommendationService] Chatbot projects for user ${userId}:`, projectIds);
+    console.log(
+      `[RecommendationService] Chatbot projects for user ${userId}:`,
+      projectIds
+    );
   }
 
   /**
@@ -73,7 +95,9 @@ export class RecommendationService {
   isChatbotProject(userId: string, projectId: string): boolean {
     const chatbotProjects = this.userChatbotProjectsCache.get(userId);
     const isChatbot = chatbotProjects ? chatbotProjects.has(projectId) : false;
-    console.log(`[RecommendationService] Checking if project ${projectId} is chatbot suggestion for user ${userId}: ${isChatbot}`);
+    console.log(
+      `[RecommendationService] Checking if project ${projectId} is chatbot suggestion for user ${userId}: ${isChatbot}`
+    );
     return isChatbot;
   }
 
@@ -89,16 +113,23 @@ export class RecommendationService {
     // Decode JWT to get user ID
     const jwtUser = await this.authService.decodeJWT(token);
     const userId = jwtUser.userId;
-    console.log("Basic filtering ON SERVER")
+    console.log("Basic filtering ON SERVER");
+
+    // Get user data for evaluation logging
+    const user = await this.userModel
+      .findById(userId)
+      .select("firstName lastName")
+      .lean();
+
     // Query all non-draft projects excluding user's own projects
     const query: any = {
       isDraft: false,
       owner: { $ne: new Types.ObjectId(userId) },
     };
-    
+
     // Get user's liked projects
     const likedProjectsData = await this.projectLikeService.findAll("", userId);
-    
+
     // Get all projects with populated fields
     const allProjects = await this.projectModel
       .find(query)
@@ -112,9 +143,16 @@ export class RecommendationService {
     // Get likes count for each project and sort by popularity
     const projectsWithLikes = await Promise.all(
       allProjects.map(async (project) => {
-        const likes = await this.projectLikeService.likesCount(project._id.toString());
-        const isLiked = likedProjectsData.likes.findIndex(item => item.projectId.toString() === project._id.toString()) !== -1;
-        const comments = await this.commentsService.findAllOfCommentsCount(project._id.toString());
+        const likes = await this.projectLikeService.likesCount(
+          project._id.toString()
+        );
+        const isLiked =
+          likedProjectsData.likes.findIndex(
+            (item) => item.projectId.toString() === project._id.toString()
+          ) !== -1;
+        const comments = await this.commentsService.findAllOfCommentsCount(
+          project._id.toString()
+        );
 
         return {
           ...project,
@@ -130,8 +168,19 @@ export class RecommendationService {
 
     const total = projectsWithLikes.length;
 
+    // Log recommendation count for evaluation
+    if (user && user.firstName && user.lastName) {
+      await this.evaluationService.logRecommendationCount(
+        user.firstName,
+        user.lastName,
+        userId,
+        "basic-filtering",
+        total
+      );
+    }
+
     // Speichere den verwendeten Algorithmus für diesen User
-    this.setUserAlgorithm(userId, 'basic-filtering');
+    this.setUserAlgorithm(userId, "basic-filtering");
 
     return {
       projects: projectsWithLikes,
@@ -163,7 +212,7 @@ export class RecommendationService {
     // console.log("DEBUG - Decoded JWT User:", jwtUser, "token: ", token);
     const userId = jwtUser.userId;
     // const userName = jwtUser.name;
-    console.log("Content-based filtering ON SERVER")
+    console.log("Content-based filtering ON SERVER");
     // Get user profile with interests
     const user = await this.userModel
       .findById(id) // changed from jwtUser.userId to id
@@ -320,9 +369,16 @@ export class RecommendationService {
     // Add likes count and isLiked to each project
     const projectsWithLikes = await Promise.all(
       paginatedProjects.map(async (project) => {
-        const likes = await this.projectLikeService.likesCount(project._id.toString());
-        const isLiked = likedProjectsData.likes.findIndex(item => item.projectId.toString() === project._id.toString()) !== -1;
-        const comments = await this.commentsService.findAllOfCommentsCount(project._id.toString());
+        const likes = await this.projectLikeService.likesCount(
+          project._id.toString()
+        );
+        const isLiked =
+          likedProjectsData.likes.findIndex(
+            (item) => item.projectId.toString() === project._id.toString()
+          ) !== -1;
+        const comments = await this.commentsService.findAllOfCommentsCount(
+          project._id.toString()
+        );
         return {
           ...project,
           isLiked,
@@ -339,11 +395,24 @@ export class RecommendationService {
     console.log("Returning projects:", projectsWithLikes.length);
     console.log("Expected last page:", Math.ceil(total / limit));
 
-    const hasMore = skip + paginatedProjects.length < total;
+    // const hasMore = skip + paginatedProjects.length < total;
+    const hasMore = false;
     console.log("Has more pages:", hasMore);
 
+    // Log recommendation count for evaluation
+    if (user && user.firstName && user.lastName) {
+      await this.evaluationService.logRecommendationCount(
+        user.firstName,
+        user.lastName,
+        userId,
+        "content-based",
+        // total
+        projectsWithLikes.length
+      );
+    }
+
     // Speichere den verwendeten Algorithmus für diesen User
-    this.setUserAlgorithm(userId, 'content-based');
+    this.setUserAlgorithm(userId, "content-based");
 
     return {
       projects: projectsWithLikes,
@@ -363,13 +432,13 @@ export class RecommendationService {
     token: string,
     id: string,
     page: number = 1,
-    limit: number = 10,
-  ): Promise<{ 
-    projects: any[]; 
-    total: number; 
-    page: number; 
-    limit: number; 
-    hasMore: boolean; 
+    limit: number = 10
+  ): Promise<{
+    projects: any[];
+    total: number;
+    page: number;
+    limit: number;
+    hasMore: boolean;
     algorithm: string;
     emptyStateReason?: string;
     emptyStateMessage?: string;
@@ -377,7 +446,12 @@ export class RecommendationService {
     // Decode JWT to get user ID
     const jwtUser = await this.authService.decodeJWT(token);
     const userId = jwtUser.userId;
-    console.log("Collaborative filtering ON SERVER")
+    console.log("Collaborative filtering ON SERVER");
+    // Get user data for evaluation logging
+    const user = await this.userModel
+      .findById(userId)
+      .select("firstName lastName")
+      .lean();
     //console.log("\n=== COLLABORATIVE FILTERING (SVD-based) ===");
     //console.log("User ID:", userId);
 
@@ -406,17 +480,18 @@ export class RecommendationService {
         hasMore: false,
         algorithm: "collaborative-filtering",
         emptyStateReason: "no_interactions",
-        emptyStateMessage: "Like some projects first to get personalized recommendations based on users with similar tastes.",
+        emptyStateMessage:
+          "Like some projects first to get personalized recommendations based on users with similar tastes.",
       };
     }
 
     // Build user-item matrix (sparse representation)
     const userProjectMap = new Map<string, Set<string>>();
-    
+
     allLikes.forEach((like) => {
       const uid = like.userId.toString();
       const pid = like.projectId.toString();
-      
+
       if (!userProjectMap.has(uid)) {
         userProjectMap.set(uid, new Set());
       }
@@ -435,7 +510,7 @@ export class RecommendationService {
       const intersection = [...userLikesSet].filter((pid) =>
         otherUserLikes.has(pid)
       ).length;
-      
+
       const union = new Set([...userLikesSet, ...otherUserLikes]).size;
       const similarity = union > 0 ? intersection / union : 0;
 
@@ -459,7 +534,8 @@ export class RecommendationService {
         hasMore: false,
         algorithm: "collaborative-filtering",
         emptyStateReason: "no_similar_users",
-        emptyStateMessage: "No users with similar tastes found yet. Try liking more projects to improve recommendations.",
+        emptyStateMessage:
+          "No users with similar tastes found yet. Try liking more projects to improve recommendations.",
       };
     }
 
@@ -472,7 +548,7 @@ export class RecommendationService {
 
     topSimilarUsers.forEach(({ userId: similarUserId, similarity }) => {
       const similarUserLikes = userProjectMap.get(similarUserId) || new Set();
-      
+
       similarUserLikes.forEach((projectId) => {
         // Skip projects already liked by target user
         if (userLikesSet.has(projectId)) return;
@@ -494,7 +570,8 @@ export class RecommendationService {
         hasMore: false,
         algorithm: "collaborative-filtering",
         emptyStateReason: "no_new_projects",
-        emptyStateMessage: "You've already liked all projects that similar users enjoy. Check back later for new projects!",
+        emptyStateMessage:
+          "You've already liked all projects that similar users enjoy. Check back later for new projects!",
       };
     }
 
@@ -541,9 +618,16 @@ export class RecommendationService {
     // Add likes count and isLiked to each project
     const projectsWithLikes = await Promise.all(
       projectsWithScores.map(async (project) => {
-        const likes = await this.projectLikeService.likesCount(project._id.toString());
-        const isLiked = likedProjectsData.likes.findIndex(item => item.projectId.toString() === project._id.toString()) !== -1;
-        const comments = await this.commentsService.findAllOfCommentsCount(project._id.toString());
+        const likes = await this.projectLikeService.likesCount(
+          project._id.toString()
+        );
+        const isLiked =
+          likedProjectsData.likes.findIndex(
+            (item) => item.projectId.toString() === project._id.toString()
+          ) !== -1;
+        const comments = await this.commentsService.findAllOfCommentsCount(
+          project._id.toString()
+        );
         return {
           ...project,
           isLiked,
@@ -561,8 +645,20 @@ export class RecommendationService {
     console.log("Total available:", total);
     console.log("Has more:", hasMore);
 
+    // Log recommendation count for evaluation
+    if (user && user.firstName && user.lastName) {
+      await this.evaluationService.logRecommendationCount(
+        user.firstName,
+        user.lastName,
+        userId,
+        "collaborative",
+        // total
+        projectsWithLikes.length
+      );
+    }
+
     // Speichere den verwendeten Algorithmus für diesen User
-    this.setUserAlgorithm(userId, 'collaborative');
+    this.setUserAlgorithm(userId, "collaborative");
 
     return {
       projects: projectsWithLikes,
@@ -586,12 +682,24 @@ export class RecommendationService {
     // Get content-based recommendations (without pagination to calculate popularity)
     // const contentBased = await this.getContentBasedRecommendations(token, 1, 100); // pagination disabled
     const contentBased = await this.getContentBasedRecommendations(token, id);
-    console.log("Hybrid filtering ON SERVER")
+    console.log("Hybrid filtering ON SERVER");
+
+    // Decode JWT to get user ID for caching and evaluation
+    const jwtUser = await this.authService.decodeJWT(token);
+    const userId = jwtUser.userId;
+
+    // Get user data for evaluation logging
+    const user = await this.userModel
+      .findById(userId)
+      .select("firstName lastName")
+      .lean();
 
     // Add popularity score based on likes
     const projectsWithPopularity = await Promise.all(
       contentBased.projects.map(async (project) => {
-        const likes = await this.projectLikeService.likesCount(project._id.toString());
+        const likes = await this.projectLikeService.likesCount(
+          project._id.toString()
+        );
 
         // Normalize popularity score (max 1.0)
         const popularityScore = Math.min(likes / 10, 1.0);
@@ -621,12 +729,19 @@ export class RecommendationService {
     //console.log('DEBUG - For you - Hyprid:', paginatedProjects);
     console.log("DEBUG - For you - Hyprid:", projectsWithPopularity);
 
-    // Decode JWT to get user ID for caching
-    const jwtUser = await this.authService.decodeJWT(token);
-    const userId = jwtUser.userId;
+    // Log recommendation count for evaluation
+    if (user && user.firstName && user.lastName) {
+      await this.evaluationService.logRecommendationCount(
+        user.firstName,
+        user.lastName,
+        userId,
+        "hybrid",
+        total
+      );
+    }
 
     // Speichere den verwendeten Algorithmus für diesen User
-    this.setUserAlgorithm(userId, 'hybrid');
+    this.setUserAlgorithm(userId, "hybrid");
 
     return {
       // projects: paginatedProjects,
