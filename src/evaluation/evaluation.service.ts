@@ -254,19 +254,28 @@ export class EvaluationService {
         data[fullName].recommendations[algorithm] = { likes: 0, recCount: 0 };
       }
 
-      // Update or set recCount for the algorithm
-      data[fullName].recommendations[algorithm].recCount = count;
+      // Only set recCount if it hasn't been set yet (is 0 or undefined)
+      if (
+        !data[fullName].recommendations[algorithm].recCount ||
+        data[fullName].recommendations[algorithm].recCount === 0
+      ) {
+        data[fullName].recommendations[algorithm].recCount = count;
 
-      // Write to file
-      fs.writeFileSync(
-        this.jsonFilePath,
-        JSON.stringify(data, null, 2),
-        "utf-8"
-      );
+        // Write to file
+        fs.writeFileSync(
+          this.jsonFilePath,
+          JSON.stringify(data, null, 2),
+          "utf-8"
+        );
 
-      console.log(
-        `[Evaluation] Recommendation count logged for ${fullName} - Algorithm: ${algorithm} - Total recommendations: ${count}`
-      );
+        console.log(
+          `[Evaluation] Recommendation count logged for ${fullName} - Algorithm: ${algorithm} - Initial recommendations: ${count}`
+        );
+      } else {
+        console.log(
+          `[Evaluation] Recommendation count already set for ${fullName} - Algorithm: ${algorithm} - Keeping initial value: ${data[fullName].recommendations[algorithm].recCount}`
+        );
+      }
     } catch (error) {
       console.error("[Evaluation] Error logging recommendation count:", error);
       // Don't throw error to avoid breaking recommendation flow
