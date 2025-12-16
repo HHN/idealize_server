@@ -38,3 +38,9 @@ lerna-debug.log*
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
+
+# idealize_server_ai
+ai-testing.env
+evaluation-data.json
+evaluation-data-test.json
+
