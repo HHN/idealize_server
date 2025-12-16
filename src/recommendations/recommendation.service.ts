@@ -395,7 +395,8 @@ export class RecommendationService {
     console.log("Returning projects:", projectsWithLikes.length);
     console.log("Expected last page:", Math.ceil(total / limit));
 
-    const hasMore = skip + paginatedProjects.length < total;
+    // const hasMore = skip + paginatedProjects.length < total;
+    const hasMore = false;
     console.log("Has more pages:", hasMore);
 
     // Log recommendation count for evaluation
@@ -650,7 +651,7 @@ export class RecommendationService {
         user.lastName,
         userId,
         "collaborative",
-        total
+        projectsWithLikes.length
       );
     }
 
