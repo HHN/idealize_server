@@ -6,7 +6,7 @@ import * as path from "path";
 export class EvaluationService {
   private readonly jsonFilePath = path.join(
     process.cwd(),
-    "evaluation-data-test.json"
+    "evaluation-data.json"
   );
 
   /**
