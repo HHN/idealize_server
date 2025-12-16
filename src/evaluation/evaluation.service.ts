@@ -6,7 +6,7 @@ import * as path from "path";
 export class EvaluationService {
   private readonly jsonFilePath = path.join(
     process.cwd(),
-    "evaluation-data-test.json"
+    "evaluation-data.json"
   );
 
   /**
@@ -37,8 +37,8 @@ export class EvaluationService {
           firstLoginTimestamp: new Date().toISOString(),
           recommendations: {
             "basic-filtering": {
-              likes: 0,
-              recCount: 0,
+              likes: 0, // Count the likes per filter algorithm
+              recCount: 0, // Count the number of recommendations shown
             },
             "content-based": {
               likes: 0,
